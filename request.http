@@ -1,5 +1,141 @@
-### GET request to example server
-GET https://examples.http-client.intellij.net/get
-    ?generated-in=IntelliJ IDEA
+### ==================================================
+### Register and log in testing
+### ==================================================
+
+### 1️⃣ Register New Customer
+POST http://localhost:8081/api/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Hamza",
+  "lastName": "Shaer",
+  "email": "hamza@example.com",
+  "password": "Hamza@12345",
+  "phone": "+970599123456",
+  "role": "CUSTOMER"
+}
 
 ###
+
+### 2️⃣ Register New Service Provider
+POST http://localhost:8081/api/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Ahmad",
+  "lastName": "Ali",
+  "email": "ahmad@example.com",
+  "password": "Ahmad@12345",
+  "phone": "+970599654321",
+  "role": "SERVICE_PROVIDER",
+  "bio": "Experienced Java Developer with 5+ years",
+  "professionalTitle": "Senior Java Developer",
+  "certificateUrl": "https://example.com/certificates/ahmad-java.pdf"
+}
+
+###
+
+### 3️⃣ Login as Admin
+POST http://localhost:8081/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@trainingproject.com",
+  "password": "Admin@12345"
+}
+
+###
+
+### 4️⃣ Login as Customer
+POST http://localhost:8081/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "hamza@example.com",
+  "password": "Hamza@12345"
+}
+
+###
+
+### 5️⃣ Login as Service Provider
+POST http://localhost:8081/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "ahmad@example.com",
+  "password": "Ahmad@12345"
+}
+
+###
+
+### ==================================================
+### ❌ ERROR TESTING - Invalid Requests
+### ==================================================
+
+### 6️⃣ Register with Existing Email (Should fail - 409 Conflict)
+POST http://localhost:8081/api/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Test",
+  "lastName": "User",
+  "email": "hamza@example.com",
+  "password": "Test@12345",
+  "phone": "+970599999999",
+  "role": "CUSTOMER"
+}
+
+###
+
+### 7️⃣ Register with Invalid Email (Should fail - 400 Bad Request)
+POST http://localhost:8081/api/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Test",
+  "lastName": "User",
+  "email": "HHH",
+  "password": "Test@12345",
+  "phone": "+970599999999",
+  "role": "CUSTOMER"
+}
+
+###
+
+### 8️⃣ Register with Weak Password (Should fail - 400 Bad Request)
+POST http://localhost:8081/api/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Test",
+  "lastName": "User",
+  "email": "test@example.com",
+  "password": "123",
+  "phone": "+970599999999",
+  "role": "CUSTOMER"
+}
+
+###
+
+### 9️⃣ Login with Wrong Password (Should fail - 401 Unauthorized)
+POST http://localhost:8081/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "hamza@example.com",
+  "password": "WrongPassword123"
+}
+
+###
+
+### 🔟 Login with Non-Existent Email (Should fail - 401 Unauthorized)
+POST http://localhost:8081/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "nonexistent@example.com",
+  "password": "SomePassword123"
+}
+
+#################################################################################
+
