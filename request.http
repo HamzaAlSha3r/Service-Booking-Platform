@@ -15,25 +15,39 @@ Content-Type: application/json
   "role": "CUSTOMER"
 }
 
-###
+### 4️⃣ Login as Customer
+POST http://localhost:8081/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "hamza@example.com",
+  "password": "Hamza@12345"
+}
 
 ### 2️⃣ Register New Service Provider
 POST http://localhost:8081/api/auth/register
 Content-Type: application/json
 
 {
-  "firstName": "Ahmad",
+  "firstName": "ali",
   "lastName": "Ali",
-  "email": "ahmad@example.com",
+  "email": "all.ali@example.com",
   "password": "Ahmad@12345",
-  "phone": "+970599654321",
+  "phone": "+970599654311",
   "role": "SERVICE_PROVIDER",
-  "bio": "Experienced Java Developer with 5+ years",
+  "bio": "Experienced Java Developer with 9+ years",
   "professionalTitle": "Senior Java Developer",
   "certificateUrl": "https://example.com/certificates/ahmad-java.pdf"
 }
 
-###
+### 5️⃣ Login as Service Provider
+POST http://localhost:8081/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "all.ali@example.com",
+  "password": "Ahmad@12345"
+}
 
 ### 3️⃣ Login as Admin
 POST http://localhost:8081/api/auth/login
@@ -44,29 +58,6 @@ Content-Type: application/json
   "password": "Admin@12345"
 }
 
-###
-
-### 4️⃣ Login as Customer
-POST http://localhost:8081/api/auth/login
-Content-Type: application/json
-
-{
-  "email": "hamza@example.com",
-  "password": "Hamza@12345"
-}
-
-###
-
-### 5️⃣ Login as Service Provider
-POST http://localhost:8081/api/auth/login
-Content-Type: application/json
-
-{
-  "email": "ahmad@example.com",
-  "password": "Ahmad@12345"
-}
-
-###
 
 ### ==================================================
 ### ❌ ERROR TESTING - Invalid Requests
@@ -137,5 +128,73 @@ Content-Type: application/json
   "password": "SomePassword123"
 }
 
+###
+
+#################################################################################
+### ==================================================
+### 👑 ADMIN OPERATIONS
+### ==================================================
+### ⚠️ NOTE: Replace {ADMIN_TOKEN} with actual JWT token from Admin login
+### Get token from Request #3 (Login as Admin)
 #################################################################################
 
+### 1️⃣1️⃣ Get Pending Service Providers
+GET http://localhost:8081/api/admin/providers/pending
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhZG1pbkB0cmFpbmluZ3Byb2plY3QuY29tIiwiaWF0IjoxNzY3MjE1MDQxLCJleHAiOjE3NjczMDE0NDF9.gzgEoKxf02me0SFDujqIdrbxwopmo0RgutYswL_vByyAgLtk5F9c4lG-ij95oi3I
+
+###
+
+### 1️⃣2️⃣ Approve Service Provider
+PUT http://localhost:8081/api/admin/providers/4/approve
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhZG1pbkB0cmFpbmluZ3Byb2plY3QuY29tIiwiaWF0IjoxNzY3MjE1MDQxLCJleHAiOjE3NjczMDE0NDF9.gzgEoKxf02me0SFDujqIdrbxwopmo0RgutYswL_vByyAgLtk5F9c4lG-ij95oi3I
+Content-Type: application/json
+
+{
+  "adminNotes": "Certificate verified and approved"
+}
+
+###
+
+### 1️⃣3️⃣ Reject Service Provider
+PUT http://localhost:8081/api/admin/providers/6/reject
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhZG1pbkB0cmFpbmluZ3Byb2plY3QuY29tIiwiaWF0IjoxNzY3MjE1NzIwLCJleHAiOjE3NjczMDIxMjB9.1ln0m2yGN_fd2EO6W5mYCzu7tWlYgo0I06IYG3ml9-I4PE7YfoZmsX2pgLmSkEPR
+Content-Type: application/json
+
+{
+  "adminNotes": "Certificate not valid or incomplete information"
+}
+
+### 1️⃣7️⃣ Get Platform Statistics
+GET http://localhost:8081/api/admin/stats
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhZG1pbkB0cmFpbmluZ3Byb2plY3QuY29tIiwiaWF0IjoxNzY3MjE2NDc2LCJleHAiOjE3NjczMDI4NzZ9.NhTfdiOmCR5b_gKCKmwQG770aw8OD6Uq9FwKQ0YFIj4uWF3B71H8QXigtuWwZCG1
+
+###
+
+### ==================================================
+### ❌ ADMIN ERROR TESTING
+### ==================================================
+
+### 1️⃣8️⃣ Access Admin Endpoint without Token (Should fail - 401)
+GET http://localhost:8081/api/admin/providers/pending
+
+###
+
+### 1️⃣9️⃣ Access Admin Endpoint as Customer (Should fail - 403 Forbidden)
+### First login as customer (Request #4), then use customer token below
+GET http://localhost:8081/api/admin/providers/pending
+Authorization: Bearer {CUSTOMER_TOKEN}
+
+###
+
+### 2️⃣0️⃣ Approve Non-Existent Provider (Should fail - 404 Not Found)
+PUT http://localhost:8081/api/admin/providers/99999/approve
+Authorization: Bearer {eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhZG1pbkB0cmFpbmluZ3Byb2plY3QuY29tIiwiaWF0IjoxNzY3MjE1NzIwLCJleHAiOjE3NjczMDIxMjB9.1ln0m2yGN_fd2EO6W5mYCzu7tWlYgo0I06IYG3ml9-I4PE7YfoZmsX2pgLmSkEPR
+Content-Type: application/json
+
+{
+  "adminNotes": "Test"
+}
+
+###
+
+#################################################################################

@@ -4,10 +4,10 @@ import com.testing.traningproject.exception.BadRequestException;
 import com.testing.traningproject.exception.DuplicateResourceException;
 import com.testing.traningproject.exception.ResourceNotFoundException;
 import com.testing.traningproject.exception.UnauthorizedException;
-import com.testing.traningproject.model.dto.AuthResponse;
-import com.testing.traningproject.model.dto.LoginRequest;
-import com.testing.traningproject.model.dto.RegisterRequest;
-import com.testing.traningproject.model.dto.UserResponse;
+import com.testing.traningproject.model.dto.response.AuthResponse;
+import com.testing.traningproject.model.dto.request.LoginRequest;
+import com.testing.traningproject.model.dto.request.RegisterRequest;
+import com.testing.traningproject.model.dto.response.UserResponse;
 import com.testing.traningproject.model.entity.Role;
 import com.testing.traningproject.model.entity.User;
 import com.testing.traningproject.model.enums.AccountStatus;
@@ -16,6 +16,7 @@ import com.testing.traningproject.repository.RoleRepository;
 import com.testing.traningproject.repository.UserRepository;
 import com.testing.traningproject.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
@@ -32,6 +33,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -91,7 +93,16 @@ public class AuthService {
         // Save user to database
         User savedUser = userRepository.save(user);
 
-        // Generate JWT token
+        // If SERVICE_PROVIDER with PENDING_APPROVAL, don't generate token
+        if (savedUser.getAccountStatus() == AccountStatus.PENDING_APPROVAL) {
+            log.info("Service provider registered successfully, pending admin approval: {}", savedUser.getEmail());
+            return AuthResponse.builder()
+                    .message("Registration successful. Your account is pending admin approval.")
+                    .user(mapToUserResponse(savedUser))
+                    .build();
+        }
+
+        // Generate JWT token (for CUSTOMER or ACTIVE users)
         org.springframework.security.core.userdetails.User userDetails =
                 new org.springframework.security.core.userdetails.User(
                         savedUser.getEmail(),

@@ -1,4 +1,4 @@
-package com.testing.traningproject.model.dto;
+package com.testing.traningproject.model.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,8 +18,9 @@ public class AuthResponse {
 
     private String token; // JWT access token
     private String refreshToken; // JWT refresh token (optional for later)
-    private String tokenType = "Bearer"; // Always "Bearer"
+    private String tokenType; // Always "Bearer"
     private Long expiresIn; // Token expiration time in milliseconds
     private UserResponse user; // User information (without password!)
+    private String message; // Optional message (e.g., "Pending approval")
 }
 

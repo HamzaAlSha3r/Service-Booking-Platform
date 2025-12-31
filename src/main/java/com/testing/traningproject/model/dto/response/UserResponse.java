@@ -1,4 +1,4 @@
-package com.testing.traningproject.model.dto;
+package com.testing.traningproject.model.dto.response;
 
 import com.testing.traningproject.model.enums.AccountStatus;
 import lombok.AllArgsConstructor;

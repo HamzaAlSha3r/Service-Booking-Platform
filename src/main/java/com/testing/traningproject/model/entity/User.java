@@ -70,8 +70,8 @@ public class User {
     private LocalDateTime updatedAt;
 
     // Many-to-Many relationship with Role
-    // LAZY mean the role dont upload untile we need them
-    @ManyToMany(fetch = FetchType.LAZY)
+    // EAGER to ensure roles are loaded (needed for authentication)
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_role",
             joinColumns = @JoinColumn(name = "user_id"),

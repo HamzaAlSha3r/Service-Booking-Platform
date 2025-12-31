@@ -1,4 +1,4 @@
-package com.testing.traningproject.model.dto;
+package com.testing.traningproject.model.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

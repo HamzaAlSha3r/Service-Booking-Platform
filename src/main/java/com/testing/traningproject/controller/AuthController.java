@@ -1,8 +1,8 @@
 package com.testing.traningproject.controller;
 
-import com.testing.traningproject.model.dto.AuthResponse;
-import com.testing.traningproject.model.dto.LoginRequest;
-import com.testing.traningproject.model.dto.RegisterRequest;
+import com.testing.traningproject.model.dto.response.AuthResponse;
+import com.testing.traningproject.model.dto.request.LoginRequest;
+import com.testing.traningproject.model.dto.request.RegisterRequest;
 import com.testing.traningproject.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
