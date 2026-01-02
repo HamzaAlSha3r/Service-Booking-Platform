@@ -8,7 +8,9 @@ import com.testing.traningproject.model.dto.response.AdminStatsResponse;
 import com.testing.traningproject.model.dto.response.PendingProviderResponse;
 import com.testing.traningproject.model.dto.response.PendingRefundResponse;
 import com.testing.traningproject.model.dto.response.SubscriptionPlanResponse;
+import com.testing.traningproject.model.dto.response.TransactionResponse;
 import com.testing.traningproject.service.AdminService;
+import com.testing.traningproject.service.TransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,7 @@ import java.util.List;
 public class AdminController {
 
     private final AdminService adminService;
+    private final TransactionService transactionService;
 
     /**
      * Get all pending service provider registrations
