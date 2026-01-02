@@ -73,7 +73,10 @@ public class AdminService {
         provider.setUpdatedAt(LocalDateTime.now());
         userRepository.save(provider);
 
-        // TODO: Send notification to provider (ACCOUNT_APPROVED)
+        // TODO: Send notification to provider (ACCOUNT_APPROVED) with admin notes if provided
+        if (request != null && request.getAdminNotes() != null) {
+            log.info("Provider approved with notes: {}", request.getAdminNotes());
+        }
         log.info("Provider approved successfully: {}", provider.getEmail());
     }
 
@@ -94,6 +97,9 @@ public class AdminService {
         userRepository.save(provider);
 
         // TODO: Send notification to provider (ACCOUNT_REJECTED) with admin notes
+        if (request != null && request.getAdminNotes() != null) {
+            log.info("Provider rejected with reason: {}", request.getAdminNotes());
+        }
         log.info("Provider rejected successfully: {}", provider.getEmail());
     }
 
