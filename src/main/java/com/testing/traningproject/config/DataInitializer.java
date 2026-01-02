@@ -19,7 +19,6 @@ import java.util.Set;
 /**
  * Data Initializer
  * Runs once when application starts to insert initial data
- * يضيف البيانات الأساسية عند بداية التطبيق
  */
 @Component
 @RequiredArgsConstructor
@@ -38,11 +37,8 @@ public class DataInitializer implements CommandLineRunner {
 
     /**
      * Initialize roles if they don't exist
-     * إضافة الأدوار الأساسية إذا لم تكن موجودة
      */
     private void initializeRoles() {
-        log.info("Checking if roles need to be initialized...");
-
         // Check if roles already exist
         if (roleRepository.count() > 0) {
             log.info("Roles already exist. Skipping initialization.");
@@ -55,15 +51,12 @@ public class DataInitializer implements CommandLineRunner {
                     .name(roleName)
                     .build();
             roleRepository.save(role);
-            log.info("Role created: {}", roleName);
         }
-
         log.info("Roles initialization completed successfully!");
     }
 
     /**
      * Initialize admin user if it doesn't exist
-     * إضافة المستخدم الأساسي (Admin) إذا لم يكن موجود
      */
     private void initializeAdminUser() {
         log.info("Checking if admin user needs to be initialized...");
@@ -98,12 +91,7 @@ public class DataInitializer implements CommandLineRunner {
 
         userRepository.save(adminUser);
 
-        log.info("═══════════════════════════════════════════════════════");
-        log.info("✅ Admin user created successfully!");
-        log.info("   Email: {}", adminEmail);
-        log.info("   Password: Admin@12345");
-        log.info("   ⚠️ IMPORTANT: Change this password in production!");
-        log.info("═══════════════════════════════════════════════════════");
+        log.info("Admin user created successfully!");
     }
 }
 

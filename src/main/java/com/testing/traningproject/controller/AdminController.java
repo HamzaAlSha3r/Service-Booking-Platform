@@ -1,10 +1,13 @@
 package com.testing.traningproject.controller;
 
+import com.testing.traningproject.model.dto.request.CreateSubscriptionPlanRequest;
 import com.testing.traningproject.model.dto.request.ProviderApprovalRequest;
 import com.testing.traningproject.model.dto.request.RefundDecisionRequest;
+import com.testing.traningproject.model.dto.request.UpdateSubscriptionPlanRequest;
 import com.testing.traningproject.model.dto.response.AdminStatsResponse;
 import com.testing.traningproject.model.dto.response.PendingProviderResponse;
 import com.testing.traningproject.model.dto.response.PendingRefundResponse;
+import com.testing.traningproject.model.dto.response.SubscriptionPlanResponse;
 import com.testing.traningproject.service.AdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,26 +33,21 @@ public class AdminController {
 
     /**
      * Get all pending service provider registrations
-     * GET /api/admin/providers/pending
      */
-    // here dont need validation this as list check from admin
     @GetMapping("/providers/pending")
     public ResponseEntity<List<PendingProviderResponse>> getPendingProviders() {
-        log.info("Admin: Fetching pending provider registrations");
         List<PendingProviderResponse> providers = adminService.getPendingProviders();
         return ResponseEntity.ok(providers);
     }
 
     /**
      * Approve service provider registration
-     * PUT /api/admin/providers/{id}/approve
      */
     @PutMapping("/providers/{id}/approve")
-    public ResponseEntity<String> approveProvider(
-            @PathVariable Long id,
+    public ResponseEntity<String> approveProvider(@PathVariable Long id,
             @Valid @RequestBody(required = false) ProviderApprovalRequest request) {
-        log.info("Admin: Approving provider with ID: {}", id);
 
+        // if request null we create an empty ProviderApprovalRequest() to avoid errors
         if (request == null) {
             request = new ProviderApprovalRequest();
         }
@@ -60,20 +58,16 @@ public class AdminController {
 
     /**
      * Reject service provider registration
-     * PUT /api/admin/providers/{id}/reject
      */
     @PutMapping("/providers/{id}/reject")
-    public ResponseEntity<String> rejectProvider(
-            @PathVariable Long id,
+    public ResponseEntity<String> rejectProvider(@PathVariable Long id,
             @Valid @RequestBody ProviderApprovalRequest request) {
-        log.info("Admin: Rejecting provider with ID: {}", id);
         adminService.rejectProvider(id, request);
         return ResponseEntity.ok("Provider rejected successfully");
     }
 
     /**
      * Get all pending refund requests
-     * GET /api/admin/refunds/pending
      */
     @GetMapping("/refunds/pending")
     public ResponseEntity<List<PendingRefundResponse>> getPendingRefunds() {
@@ -84,14 +78,12 @@ public class AdminController {
 
     /**
      * Approve refund request
-     * PUT /api/admin/refunds/{id}/approve
      */
     @PutMapping("/refunds/{id}/approve")
-    public ResponseEntity<String> approveRefund(
-            @PathVariable Long id,
+    public ResponseEntity<String> approveRefund(@PathVariable Long id,
             @Valid @RequestBody(required = false) RefundDecisionRequest request) {
-        log.info("Admin: Approving refund with ID: {}", id);
 
+        // if request null we create an empty ProviderApprovalRequest() to avoid errors
         if (request == null) {
             request = new RefundDecisionRequest();
         }
@@ -102,20 +94,16 @@ public class AdminController {
 
     /**
      * Reject refund request
-     * PUT /api/admin/refunds/{id}/reject
      */
     @PutMapping("/refunds/{id}/reject")
-    public ResponseEntity<String> rejectRefund(
-            @PathVariable Long id,
+    public ResponseEntity<String> rejectRefund(@PathVariable Long id,
             @Valid @RequestBody RefundDecisionRequest request) {
-        log.info("Admin: Rejecting refund with ID: {}", id);
         adminService.rejectRefund(id, request);
         return ResponseEntity.ok("Refund rejected successfully");
     }
 
     /**
      * Get platform statistics
-     * GET /api/admin/stats
      */
     @GetMapping("/stats")
     public ResponseEntity<AdminStatsResponse> getPlatformStats() {
@@ -123,5 +111,60 @@ public class AdminController {
         AdminStatsResponse stats = adminService.getPlatformStats();
         return ResponseEntity.ok(stats);
     }
-}
 
+    // ==================== Subscription Plan Management ====================
+
+    /**
+     * Create new subscription plan
+     */
+    @PostMapping("/subscription-plans")
+    public ResponseEntity<SubscriptionPlanResponse> createSubscriptionPlan(
+            @Valid @RequestBody CreateSubscriptionPlanRequest request) {
+        log.info("Admin: Creating new subscription plan: {}", request.getName());
+
+        SubscriptionPlanResponse response = adminService.createSubscriptionPlan(request);
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Update subscription plan
+     */
+    @PutMapping("/subscription-plans/{id}")
+    public ResponseEntity<SubscriptionPlanResponse> updateSubscriptionPlan(@PathVariable Integer id,
+            @Valid @RequestBody UpdateSubscriptionPlanRequest request) {
+        log.info("Admin: Updating subscription plan ID: {}", id);
+        SubscriptionPlanResponse response = adminService.updateSubscriptionPlan(id, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Delete subscription plan
+     */
+    @DeleteMapping("/subscription-plans/{id}")
+    public ResponseEntity<String> deleteSubscriptionPlan(@PathVariable Integer id) {
+        adminService.deleteSubscriptionPlan(id);
+        return ResponseEntity.ok("Subscription plan deleted successfully");
+    }
+
+    /**
+     * Get all subscription plans (for admin management)
+     */
+    @GetMapping("/subscription-plans")
+    public ResponseEntity<List<SubscriptionPlanResponse>> getAllSubscriptionPlans() {
+        log.info("Admin: Fetching all subscription plans");
+        List<com.testing.traningproject.model.dto.response.SubscriptionPlanResponse> plans = adminService.getAllSubscriptionPlans();
+        return ResponseEntity.ok(plans);
+    }
+
+    // ==================== Transaction Management ====================
+
+    /**
+     * Get all transactions (BOOKING_PAYMENT, SUBSCRIPTION_PAYMENT, REFUND, PAYOUT)
+     */
+    @GetMapping("/transactions")
+    public ResponseEntity<List<TransactionResponse>> getAllTransactions() {
+        log.info("Admin: Fetching all transactions");
+        List<TransactionResponse> transactions = transactionService.getAllTransactions();
+        return ResponseEntity.ok(transactions);
+    }
+}

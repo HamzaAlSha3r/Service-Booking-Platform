@@ -26,6 +26,12 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     Optional<Subscription> findActiveSubscriptionByProviderId(@Param("providerId") Long providerId);
 
     /**
+     * Count subscriptions by plan ID and status
+     * Used to check if plan has active subscriptions before deletion
+     */
+    long countByPlanIdAndStatus(Integer planId, SubscriptionStatus status);
+
+    /**
      * Find all subscriptions by provider ID
      * Used to view provider's subscription history
      */

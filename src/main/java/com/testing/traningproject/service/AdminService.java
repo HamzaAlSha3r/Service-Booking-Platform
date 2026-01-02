@@ -1,12 +1,17 @@
 package com.testing.traningproject.service;
 
+import com.testing.traningproject.exception.BadRequestException;
 import com.testing.traningproject.exception.ResourceNotFoundException;
+import com.testing.traningproject.model.dto.request.CreateSubscriptionPlanRequest;
 import com.testing.traningproject.model.dto.request.ProviderApprovalRequest;
 import com.testing.traningproject.model.dto.request.RefundDecisionRequest;
+import com.testing.traningproject.model.dto.request.UpdateSubscriptionPlanRequest;
 import com.testing.traningproject.model.dto.response.AdminStatsResponse;
 import com.testing.traningproject.model.dto.response.PendingProviderResponse;
 import com.testing.traningproject.model.dto.response.PendingRefundResponse;
+import com.testing.traningproject.model.dto.response.SubscriptionPlanResponse;
 import com.testing.traningproject.model.entity.Refund;
+import com.testing.traningproject.model.entity.SubscriptionPlan;
 import com.testing.traningproject.model.entity.User;
 import com.testing.traningproject.model.enums.AccountStatus;
 import com.testing.traningproject.model.enums.RefundStatus;
@@ -34,6 +39,7 @@ public class AdminService {
     private final BookingRepository bookingRepository;
     private final ServiceRepository serviceRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final SubscriptionPlanRepository subscriptionPlanRepository;
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
 
@@ -56,8 +62,6 @@ public class AdminService {
      */
     @Transactional
     public void approveProvider(Long providerId, ProviderApprovalRequest request) {
-        log.info("Approving provider with ID: {}", providerId);
-
         User provider = userRepository.findById(providerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Provider not found with ID: " + providerId));
 
@@ -78,8 +82,6 @@ public class AdminService {
      */
     @Transactional
     public void rejectProvider(Long providerId, ProviderApprovalRequest request) {
-        log.info("Rejecting provider with ID: {}", providerId);
-
         User provider = userRepository.findById(providerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Provider not found with ID: " + providerId));
 
@@ -114,8 +116,6 @@ public class AdminService {
      */
     @Transactional
     public void approveRefund(Long refundId, RefundDecisionRequest request) {
-        log.info("Approving refund with ID: {}", refundId);
-
         Refund refund = refundRepository.findById(refundId)
                 .orElseThrow(() -> new ResourceNotFoundException("Refund not found with ID: " + refundId));
 
@@ -128,9 +128,31 @@ public class AdminService {
         refund.setProcessedAt(LocalDateTime.now());
         refund.setUpdatedAt(LocalDateTime.now());
         refundRepository.save(refund);
+        log.info("Refund ID: {} approved by admin", refundId);
 
-        // TODO: Process actual refund via Stripe
-        // TODO: Update transaction status to REFUNDED
+        // Create REFUND transaction
+        com.testing.traningproject.model.entity.Transaction refundTransaction = com.testing.traningproject.model.entity.Transaction.builder()
+                .user(refund.getBooking().getCustomer())
+                .booking(refund.getBooking())
+                .transactionType(com.testing.traningproject.model.enums.TransactionType.REFUND)
+                .amount(refund.getRefundAmount())
+                .paymentMethod("Refund to original payment method")
+                .status(com.testing.traningproject.model.enums.TransactionStatus.SUCCESS) // TODO: Change to PENDING then SUCCESS after Stripe
+                .paymentGatewayTransactionId("MOCK_REFUND_" + System.currentTimeMillis()) // TODO: Real Stripe ID
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        transactionRepository.save(refundTransaction);
+        log.info("REFUND transaction created with ID: {} - Amount: {}", refundTransaction.getId(), refundTransaction.getAmount());
+
+        // Update refund with transaction ID
+        refund.setTransaction(refundTransaction);
+        refund.setStatus(com.testing.traningproject.model.enums.RefundStatus.COMPLETED);
+        refund.setUpdatedAt(LocalDateTime.now());
+        refundRepository.save(refund);
+        log.info("Refund ID: {} marked as COMPLETED", refund.getId());
+
         // TODO: Send notification to customer (REFUND_APPROVED)
 
         log.info("Refund approved successfully: {}", refundId);
@@ -141,8 +163,6 @@ public class AdminService {
      */
     @Transactional
     public void rejectRefund(Long refundId, RefundDecisionRequest request) {
-        log.info("Rejecting refund with ID: {}", refundId);
-
         Refund refund = refundRepository.findById(refundId)
                 .orElseThrow(() -> new ResourceNotFoundException("Refund not found with ID: " + refundId));
 
@@ -240,9 +260,120 @@ public class AdminService {
                 .build();
     }
 
+    // ==================== Subscription Plan Management ====================
+
     /**
-     * Convert User entity to PendingProviderResponse DTO
+     * Create new subscription plan
      */
+    @Transactional
+    public SubscriptionPlanResponse createSubscriptionPlan(CreateSubscriptionPlanRequest request) {
+
+        // Check if plan with same name exists
+        if (subscriptionPlanRepository.existsByName(request.getName())) {
+            throw new com.testing.traningproject.exception.DuplicateResourceException(
+                    "Subscription plan with name '" + request.getName() + "' already exists");
+        }
+
+        // save the Subscription Plan in entity
+        SubscriptionPlan plan = SubscriptionPlan.builder()
+                .name(request.getName())
+                .description(request.getDescription())
+                .price(request.getPrice())
+                .durationDays(request.getDurationDays())
+                .isActive(true)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        plan = subscriptionPlanRepository.save(plan);
+
+        log.info("Subscription plan created successfully - ID: {}", plan.getId());
+
+        return convertToSubscriptionPlanResponse(plan);
+    }
+
+    /**
+     * Update subscription plan
+     */
+    @Transactional
+    public SubscriptionPlanResponse updateSubscriptionPlan(Integer planId, UpdateSubscriptionPlanRequest request) {
+        SubscriptionPlan plan = subscriptionPlanRepository.findById(planId)
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription plan not found with ID: " + planId));
+
+        if (request.getName() != null) {
+            plan.setName(request.getName());
+        }
+        if (request.getDescription() != null) {
+            plan.setDescription(request.getDescription());
+        }
+        if (request.getPrice() != null) {
+            plan.setPrice(request.getPrice());
+        }
+        if (request.getDurationDays() != null) {
+            plan.setDurationDays(request.getDurationDays());
+        }
+        if (request.getIsActive() != null) {
+            plan.setIsActive(request.getIsActive());
+        }
+
+        plan.setUpdatedAt(LocalDateTime.now());
+        plan = subscriptionPlanRepository.save(plan);
+
+        log.info("Subscription plan updated successfully - ID: {}", planId);
+
+        return convertToSubscriptionPlanResponse(plan);
+    }
+
+    /**
+     * Delete subscription plan
+     */
+    @Transactional
+    public void deleteSubscriptionPlan(Integer planId) {
+        SubscriptionPlan plan = subscriptionPlanRepository.findById(planId)
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription plan not found with ID: " + planId));
+
+        // Check if plan has active subscriptions from service provider
+        long activeSubscriptions = subscriptionRepository.countByPlanIdAndStatus(
+                planId, com.testing.traningproject.model.enums.SubscriptionStatus.ACTIVE);
+
+        // can't delete this plan because there are active subscriptions
+        if (activeSubscriptions > 0) {
+            throw new BadRequestException(
+                    "Cannot delete subscription plan with active subscriptions. Deactivate it instead.");
+        }
+
+        subscriptionPlanRepository.delete(plan);
+
+        log.info("Subscription plan deleted successfully - ID: {}", planId);
+    }
+
+    /**
+     * Get all subscription plans (for admin management)
+     */
+    @Transactional(readOnly = true)
+    public List<SubscriptionPlanResponse> getAllSubscriptionPlans() {
+        log.info("Fetching all subscription plans for admin");
+
+        return subscriptionPlanRepository.findAll()
+                .stream()
+                .map(this::convertToSubscriptionPlanResponse)
+                .collect(Collectors.toList());
+    }
+
+    // ==================== methods for convert to Response shape ====================
+
+    private com.testing.traningproject.model.dto.response.SubscriptionPlanResponse convertToSubscriptionPlanResponse(
+            com.testing.traningproject.model.entity.SubscriptionPlan plan) {
+        return com.testing.traningproject.model.dto.response.SubscriptionPlanResponse.builder()
+                .id(plan.getId())
+                .name(plan.getName())
+                .description(plan.getDescription())
+                .price(plan.getPrice())
+                .durationDays(plan.getDurationDays())
+                .isActive(plan.getIsActive())
+                .build();
+    }
+
     private PendingProviderResponse convertToPendingProviderResponse(User user) {
         return PendingProviderResponse.builder()
                 .id(user.getId())
@@ -261,9 +392,7 @@ public class AdminService {
                 .build();
     }
 
-    /**
-     * Convert Refund entity to PendingRefundResponse DTO
-     */
+
     private PendingRefundResponse convertToPendingRefundResponse(Refund refund) {
         var booking = refund.getBooking();
         var customer = booking.getCustomer();

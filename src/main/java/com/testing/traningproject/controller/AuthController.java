@@ -23,8 +23,6 @@ public class AuthController {
 
     /**
      * Register a new user
-     * POST /api/auth/register
-     *
      * @param request RegisterRequest with user details
      * @return AuthResponse with JWT token and user info
      */
@@ -35,9 +33,7 @@ public class AuthController {
     }
 
     /**
-     * Login user
-     * POST /api/auth/login
-     *
+     * Login user*
      * @param request LoginRequest with email and password
      * @return AuthResponse with JWT token and user info
      */

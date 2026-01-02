@@ -1,6 +1,12 @@
-### ==================================================
-### Register and log in testing
-### ==================================================
+### ═══════════════════════════════════════════════════════════════════════════════
+### 🎯 SERVICE BOOKING PLATFORM - API TESTING
+### ═══════════════════════════════════════════════════════════════════════════════
+
+### ═══════════════════════════════════════════════════════════════════════════════
+### PHASE 1: AUTHENTICATION & AUTHORIZATION
+### ═══════════════════════════════════════════════════════════════════════════════
+
+### ========== User Registration ==========
 
 ### 1️⃣ Register New Customer
 POST http://localhost:8081/api/auth/register
@@ -15,7 +21,29 @@ Content-Type: application/json
   "role": "CUSTOMER"
 }
 
-### 4️⃣ Login as Customer
+###
+
+### 2️⃣ Register New Service Provider
+POST http://localhost:8081/api/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Ali",
+  "lastName": "Ahmad",
+  "email": "ali.ahmad@example.com",
+  "password": "Ahmad@12345",
+  "phone": "+970599654321",
+  "role": "SERVICE_PROVIDER",
+  "bio": "Experienced Java Developer with 5+ years in Spring Boot and Microservices",
+  "professionalTitle": "Senior Java Developer",
+  "certificateUrl": "https://example.com/certificates/ali-java.pdf"
+}
+
+###
+
+### ========== User Login ==========
+
+### 3️⃣ Login as Customer
 POST http://localhost:8081/api/auth/login
 Content-Type: application/json
 
@@ -24,32 +52,20 @@ Content-Type: application/json
   "password": "Hamza@12345"
 }
 
-### 2️⃣ Register New Service Provider
-POST http://localhost:8081/api/auth/register
-Content-Type: application/json
+###
 
-{
-  "firstName": "ali",
-  "lastName": "Ali",
-  "email": "all.ali@example.com",
-  "password": "Ahmad@12345",
-  "phone": "+970599654311",
-  "role": "SERVICE_PROVIDER",
-  "bio": "Experienced Java Developer with 9+ years",
-  "professionalTitle": "Senior Java Developer",
-  "certificateUrl": "https://example.com/certificates/ahmad-java.pdf"
-}
-
-### 5️⃣ Login as Service Provider
+### 4️⃣ Login as Service Provider
 POST http://localhost:8081/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "all.ali@example.com",
+  "email": "ali.ahmad@example.com",
   "password": "Ahmad@12345"
 }
 
-### 3️⃣ Login as Admin
+###
+
+### 5️⃣ Login as Admin
 POST http://localhost:8081/api/auth/login
 Content-Type: application/json
 
@@ -58,10 +74,9 @@ Content-Type: application/json
   "password": "Admin@12345"
 }
 
+###
 
-### ==================================================
-### ❌ ERROR TESTING - Invalid Requests
-### ==================================================
+### ========== Authentication Error Testing ==========
 
 ### 6️⃣ Register with Existing Email (Should fail - 409 Conflict)
 POST http://localhost:8081/api/auth/register
@@ -85,7 +100,7 @@ Content-Type: application/json
 {
   "firstName": "Test",
   "lastName": "User",
-  "email": "HHH",
+  "email": "invalid-email",
   "password": "Test@12345",
   "phone": "+970599999999",
   "role": "CUSTOMER"
@@ -130,65 +145,144 @@ Content-Type: application/json
 
 ###
 
-#################################################################################
-### ==================================================
-### 👑 ADMIN OPERATIONS
-### ==================================================
-### ⚠️ NOTE: Replace {ADMIN_TOKEN} with actual JWT token from Admin login
-### Get token from Request #3 (Login as Admin)
-#################################################################################
+### ═══════════════════════════════════════════════════════════════════════════════
+### PHASE 2: ADMIN FEATURES
+### ═══════════════════════════════════════════════════════════════════════════════
+
+### ========== Provider Management ==========
 
 ### 1️⃣1️⃣ Get Pending Service Providers
 GET http://localhost:8081/api/admin/providers/pending
-Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhZG1pbkB0cmFpbmluZ3Byb2plY3QuY29tIiwiaWF0IjoxNzY3MjE1MDQxLCJleHAiOjE3NjczMDE0NDF9.gzgEoKxf02me0SFDujqIdrbxwopmo0RgutYswL_vByyAgLtk5F9c4lG-ij95oi3I
+Authorization: Bearer {ADMIN_TOKEN}
 
 ###
 
 ### 1️⃣2️⃣ Approve Service Provider
-PUT http://localhost:8081/api/admin/providers/4/approve
-Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhZG1pbkB0cmFpbmluZ3Byb2plY3QuY29tIiwiaWF0IjoxNzY3MjE1MDQxLCJleHAiOjE3NjczMDE0NDF9.gzgEoKxf02me0SFDujqIdrbxwopmo0RgutYswL_vByyAgLtk5F9c4lG-ij95oi3I
+PUT http://localhost:8081/api/admin/providers/2/approve
+Authorization: Bearer {ADMIN_TOKEN}
 Content-Type: application/json
 
 {
-  "adminNotes": "Certificate verified and approved"
+  "adminNotes": "Certificate verified and approved. Welcome to the platform!"
 }
 
 ###
 
 ### 1️⃣3️⃣ Reject Service Provider
-PUT http://localhost:8081/api/admin/providers/6/reject
-Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhZG1pbkB0cmFpbmluZ3Byb2plY3QuY29tIiwiaWF0IjoxNzY3MjE1NzIwLCJleHAiOjE3NjczMDIxMjB9.1ln0m2yGN_fd2EO6W5mYCzu7tWlYgo0I06IYG3ml9-I4PE7YfoZmsX2pgLmSkEPR
+PUT http://localhost:8081/api/admin/providers/3/reject
+Authorization: Bearer {ADMIN_TOKEN}
 Content-Type: application/json
 
 {
-  "adminNotes": "Certificate not valid or incomplete information"
+  "adminNotes": "Certificate not valid or incomplete information provided"
 }
-
-### 1️⃣7️⃣ Get Platform Statistics
-GET http://localhost:8081/api/admin/stats
-Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhZG1pbkB0cmFpbmluZ3Byb2plY3QuY29tIiwiaWF0IjoxNzY3MjE2NDc2LCJleHAiOjE3NjczMDI4NzZ9.NhTfdiOmCR5b_gKCKmwQG770aw8OD6Uq9FwKQ0YFIj4uWF3B71H8QXigtuWwZCG1
 
 ###
 
-### ==================================================
-### ❌ ADMIN ERROR TESTING
-### ==================================================
+### ========== Subscription Plan Management ==========
 
-### 1️⃣8️⃣ Access Admin Endpoint without Token (Should fail - 401)
+### 1️⃣4️⃣ Get All Subscription Plans (Admin View - shows all including inactive)
+GET http://localhost:8081/api/admin/subscription-plans
+Authorization: Bearer {ADMIN_TOKEN}
+
+###
+
+### 1️⃣5️⃣ Create Monthly Subscription Plan
+POST http://localhost:8081/api/admin/subscription-plans
+Authorization: Bearer {ADMIN_TOKEN}
+Content-Type: application/json
+
+{
+  "name": "Monthly Pro Plan",
+  "description": "Professional monthly subscription for service providers with premium features",
+  "price": 100.00,
+  "durationDays": 30
+}
+
+###
+
+### 1️⃣6️⃣ Create Quarterly Subscription Plan
+POST http://localhost:8081/api/admin/subscription-plans
+Authorization: Bearer {ADMIN_TOKEN}
+Content-Type: application/json
+
+{
+  "name": "Quarterly Plan",
+  "description": "Save 20% with quarterly subscription - 90 days access to all features",
+  "price": 240.00,
+  "durationDays": 90
+}
+
+###
+
+### 1️⃣7️⃣ Create Annual Subscription Plan
+POST http://localhost:8081/api/admin/subscription-plans
+Authorization: Bearer {ADMIN_TOKEN}
+Content-Type: application/json
+
+{
+  "name": "Annual Plan",
+  "description": "Best value! Save 40% with annual subscription - 365 days",
+  "price": 720.00,
+  "durationDays": 365
+}
+
+###
+
+### 1️⃣8️⃣ Update Subscription Plan
+PUT http://localhost:8081/api/admin/subscription-plans/1
+Authorization: Bearer {ADMIN_TOKEN}
+Content-Type: application/json
+
+{
+  "name": "Monthly Premium Plan",
+  "price": 120.00,
+  "description": "Updated premium plan with more features and support"
+}
+
+###
+
+### 1️⃣9️⃣ Deactivate Subscription Plan (Don't delete, just deactivate)
+PUT http://localhost:8081/api/admin/subscription-plans/1
+Authorization: Bearer {ADMIN_TOKEN}
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+
+###
+
+### 2️⃣0️⃣ Delete Subscription Plan (Only if no active subscriptions)
+DELETE http://localhost:8081/api/admin/subscription-plans/2
+Authorization: Bearer {ADMIN_TOKEN}
+
+###
+
+### ========== Platform Statistics ==========
+
+### 2️⃣1️⃣ Get Platform Statistics
+GET http://localhost:8081/api/admin/stats
+Authorization: Bearer {ADMIN_TOKEN}
+
+###
+
+### ========== Admin Error Testing ==========
+
+### 2️⃣2️⃣ Access Admin Endpoint without Token (Should fail - 401)
 GET http://localhost:8081/api/admin/providers/pending
 
 ###
 
-### 1️⃣9️⃣ Access Admin Endpoint as Customer (Should fail - 403 Forbidden)
-### First login as customer (Request #4), then use customer token below
+### 2️⃣3️⃣ Access Admin Endpoint as Customer (Should fail - 403 Forbidden)
 GET http://localhost:8081/api/admin/providers/pending
 Authorization: Bearer {CUSTOMER_TOKEN}
 
 ###
 
-### 2️⃣0️⃣ Approve Non-Existent Provider (Should fail - 404 Not Found)
+### 2️⃣4️⃣ Approve Non-Existent Provider (Should fail - 404 Not Found)
 PUT http://localhost:8081/api/admin/providers/99999/approve
-Authorization: Bearer {eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhZG1pbkB0cmFpbmluZ3Byb2plY3QuY29tIiwiaWF0IjoxNzY3MjE1NzIwLCJleHAiOjE3NjczMDIxMjB9.1ln0m2yGN_fd2EO6W5mYCzu7tWlYgo0I06IYG3ml9-I4PE7YfoZmsX2pgLmSkEPR
+Authorization: Bearer {ADMIN_TOKEN}
 Content-Type: application/json
 
 {
@@ -197,4 +291,508 @@ Content-Type: application/json
 
 ###
 
-#################################################################################
+### 2️⃣5️⃣ Create Duplicate Subscription Plan (Should fail - 409 Conflict)
+POST http://localhost:8081/api/admin/subscription-plans
+Authorization: Bearer {ADMIN_TOKEN}
+Content-Type: application/json
+
+{
+  "name": "Monthly Pro Plan",
+  "description": "Duplicate plan",
+  "price": 100.00,
+  "durationDays": 30
+}
+
+###
+
+### ═══════════════════════════════════════════════════════════════════════════════
+### PHASE 3: SERVICE PROVIDER FEATURES
+### ═══════════════════════════════════════════════════════════════════════════════
+
+### ========== Subscription Management ==========
+
+### 2️⃣6️⃣ Get All Available Subscription Plans (Public - only active plans)
+GET http://localhost:8081/api/subscriptions/plans
+
+###
+
+### 2️⃣7️⃣ Subscribe to Plan (Requires SERVICE_PROVIDER role + ACTIVE status)
+# Note: Provider must be approved by admin first (use request #12)
+POST http://localhost:8081/api/subscriptions/subscribe
+Authorization: Bearer {PROVIDER_TOKEN}
+Content-Type: application/json
+
+{
+  "planId": 1,
+  "paymentMethod": "STRIPE",
+  "autoRenew": true
+}
+
+###
+
+### 2️⃣8️⃣ Get Current Subscription
+GET http://localhost:8081/api/subscriptions/my-subscription
+Authorization: Bearer {PROVIDER_TOKEN}
+
+###
+
+### 2️⃣9️⃣ Cancel Auto-Renewal
+PUT http://localhost:8081/api/subscriptions/cancel-renewal
+Authorization: Bearer {PROVIDER_TOKEN}
+
+###
+
+### ========== Service Management ==========
+
+### 3️⃣0️⃣ Create New Service (Requires active subscription)
+POST http://localhost:8081/api/provider/services
+Authorization: Bearer {PROVIDER_TOKEN}
+Content-Type: application/json
+
+{
+  "categoryId": 1,
+  "title": "Java Programming Masterclass",
+  "description": "Complete Java course from beginner to advanced level covering OOP, Collections, Spring Boot, and Microservices architecture",
+  "price": 50.00,
+  "durationMinutes": 60,
+  "serviceType": "BOTH",
+  "locationAddress": "123 Tech Street, Ramallah, Palestine"
+}
+
+###
+
+### 3️⃣1️⃣ Create Another Service (Online Only)
+POST http://localhost:8081/api/provider/services
+Authorization: Bearer {PROVIDER_TOKEN}
+Content-Type: application/json
+
+{
+  "categoryId": 1,
+  "title": "Spring Boot Microservices",
+  "description": "Advanced Spring Boot microservices course with Docker, Kubernetes, and Cloud deployment",
+  "price": 75.00,
+  "durationMinutes": 90,
+  "serviceType": "ONLINE"
+}
+
+###
+
+### 3️⃣2️⃣ Get Provider's Services
+GET http://localhost:8081/api/provider/services
+Authorization: Bearer {PROVIDER_TOKEN}
+
+###
+
+### 3️⃣3️⃣ Update Service
+PUT http://localhost:8081/api/provider/services/1
+Authorization: Bearer {PROVIDER_TOKEN}
+Content-Type: application/json
+
+{
+  "title": "Advanced Java Programming Masterclass",
+  "price": 65.00,
+  "description": "Updated course with more advanced topics and hands-on projects"
+}
+
+###
+
+### 3️⃣4️⃣ Deactivate Service
+PUT http://localhost:8081/api/provider/services/1
+Authorization: Bearer {PROVIDER_TOKEN}
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+
+###
+
+### 3️⃣5️⃣ Delete Service
+DELETE http://localhost:8081/api/provider/services/2
+Authorization: Bearer {PROVIDER_TOKEN}
+
+###
+
+### ========== Availability Management ==========
+
+### 3️⃣6️⃣ Set Provider Availability - Monday
+POST http://localhost:8081/api/provider/availability
+Authorization: Bearer {PROVIDER_TOKEN}
+Content-Type: application/json
+
+{
+  "dayOfWeek": "MONDAY",
+  "startTime": "09:00:00",
+  "endTime": "17:00:00"
+}
+
+###
+
+### 3️⃣7️⃣ Set Provider Availability - Tuesday
+POST http://localhost:8081/api/provider/availability
+Authorization: Bearer {PROVIDER_TOKEN}
+Content-Type: application/json
+
+{
+  "dayOfWeek": "TUESDAY",
+  "startTime": "10:00:00",
+  "endTime": "18:00:00"
+}
+
+###
+
+### 3️⃣8️⃣ Set Provider Availability - Wednesday
+POST http://localhost:8081/api/provider/availability
+Authorization: Bearer {PROVIDER_TOKEN}
+Content-Type: application/json
+
+{
+  "dayOfWeek": "WEDNESDAY",
+  "startTime": "09:00:00",
+  "endTime": "17:00:00"
+}
+
+###
+
+### 3️⃣9️⃣ Get Provider's Availability
+GET http://localhost:8081/api/provider/availability
+Authorization: Bearer {PROVIDER_TOKEN}
+
+###
+
+### 4️⃣0️⃣ Delete Availability
+DELETE http://localhost:8081/api/provider/availability/1
+Authorization: Bearer {PROVIDER_TOKEN}
+
+###
+
+### ========== Provider Error Testing ==========
+
+### 4️⃣1️⃣ Try to Subscribe without Admin Approval (Should fail - 403 Forbidden)
+# Note: Use token from newly registered provider who hasn't been approved yet
+POST http://localhost:8081/api/subscriptions/subscribe
+Authorization: Bearer {UNAPPROVED_PROVIDER_TOKEN}
+Content-Type: application/json
+
+{
+  "planId": 1,
+  "paymentMethod": "STRIPE"
+}
+
+###
+
+### 4️⃣2️⃣ Try to Create Service without Subscription (Should fail - 403 Forbidden)
+# Note: Use token from approved provider who hasn't subscribed yet
+POST http://localhost:8081/api/provider/services
+Authorization: Bearer {PROVIDER_TOKEN_WITHOUT_SUBSCRIPTION}
+Content-Type: application/json
+
+{
+  "categoryId": 1,
+  "title": "Test Service",
+  "description": "This should fail",
+  "price": 25.00,
+  "durationMinutes": 30,
+  "serviceType": "ONLINE"
+}
+
+###
+
+### 4️⃣3️⃣ Set Overlapping Availability (Should fail - 400 Bad Request)
+# Note: First create Monday 09:00-17:00, then try to create overlapping time
+POST http://localhost:8081/api/provider/availability
+Authorization: Bearer {PROVIDER_TOKEN}
+Content-Type: application/json
+
+{
+  "dayOfWeek": "MONDAY",
+  "startTime": "08:00:00",
+  "endTime": "10:00:00"
+}
+
+###
+
+### 4️⃣4️⃣ Create Service with IN_PERSON type without Location (Should fail - 400 Bad Request)
+POST http://localhost:8081/api/provider/services
+Authorization: Bearer {PROVIDER_TOKEN}
+Content-Type: application/json
+
+{
+  "categoryId": 1,
+  "title": "In-Person Consultation",
+  "description": "Face-to-face consultation",
+  "price": 100.00,
+  "durationMinutes": 60,
+  "serviceType": "IN_PERSON"
+}
+
+###
+
+### 4️⃣5️⃣ Customer Tries to Access Provider Endpoints (Should fail - 403)
+GET http://localhost:8081/api/provider/services
+Authorization: Bearer {CUSTOMER_TOKEN}
+
+###
+
+### 4️⃣6️⃣ Subscribe to Non-Existent Plan (Should fail - 404 Not Found)
+POST http://localhost:8081/api/subscriptions/subscribe
+Authorization: Bearer {PROVIDER_TOKEN}
+Content-Type: application/json
+
+{
+  "planId": 999
+}
+
+###
+
+### ═══════════════════════════════════════════════════════════════════════════════
+### PHASE 4: CUSTOMER FEATURES
+### ═══════════════════════════════════════════════════════════════════════════════
+
+### ========== Booking Management ==========
+
+### 5️⃣1️⃣ Get Available Time Slots for a Service
+# Replace {SERVICE_ID} with actual service ID from provider
+GET http://localhost:8081/api/services/{SERVICE_ID}/slots
+Authorization: Bearer {CUSTOMER_TOKEN}
+
+###
+
+### 5️⃣2️⃣ Create Booking (BOOKING_PAYMENT Transaction)
+POST http://localhost:8081/api/customer/bookings
+Authorization: Bearer {CUSTOMER_TOKEN}
+Content-Type: application/json
+
+{
+  "serviceId": 1,
+  "slotId": 1,
+  "paymentMethod": "Visa ****1234"
+}
+
+###
+
+### 5️⃣3️⃣ Get All My Bookings
+GET http://localhost:8081/api/customer/bookings
+Authorization: Bearer {CUSTOMER_TOKEN}
+
+###
+
+### 5️⃣4️⃣ Get Booking by ID
+GET http://localhost:8081/api/customer/bookings/{BOOKING_ID}
+Authorization: Bearer {CUSTOMER_TOKEN}
+
+###
+
+### 5️⃣5️⃣ Cancel Booking (Auto-Refund if < 24hrs, Pending Refund if > 24hrs)
+PUT http://localhost:8081/api/customer/bookings/{BOOKING_ID}/cancel
+Authorization: Bearer {CUSTOMER_TOKEN}
+Content-Type: application/json
+
+{
+  "cancellationReason": "Schedule conflict, need to reschedule"
+}
+
+###
+
+### ========== Review Management ==========
+
+### 5️⃣6️⃣ Submit Review (Only for COMPLETED bookings)
+POST http://localhost:8081/api/customer/reviews
+Authorization: Bearer {CUSTOMER_TOKEN}
+Content-Type: application/json
+
+{
+  "bookingId": 1,
+  "rating": 5,
+  "comment": "Excellent service! Very professional and knowledgeable."
+}
+
+###
+
+### 5️⃣7️⃣ Try to Review PENDING Booking (Should fail - 400 Bad Request)
+POST http://localhost:8081/api/customer/reviews
+Authorization: Bearer {CUSTOMER_TOKEN}
+Content-Type: application/json
+
+{
+  "bookingId": 2,
+  "rating": 4,
+  "comment": "Great session!"
+}
+
+###
+
+### 5️⃣8️⃣ Try to Review Same Booking Twice (Should fail - 400 Bad Request)
+POST http://localhost:8081/api/customer/reviews
+Authorization: Bearer {CUSTOMER_TOKEN}
+Content-Type: application/json
+
+{
+  "bookingId": 1,
+  "rating": 5,
+  "comment": "Trying to review again"
+}
+
+###
+
+### ========== Transaction History ==========
+
+### 5️⃣9️⃣ Get My Transactions (BOOKING_PAYMENT, REFUND)
+GET http://localhost:8081/api/customer/transactions
+Authorization: Bearer {CUSTOMER_TOKEN}
+
+###
+
+### ========== Provider: Booking & Review Management ==========
+
+### 6️⃣1️⃣ Provider: View All Bookings
+GET http://localhost:8081/api/provider/bookings
+Authorization: Bearer {PROVIDER_TOKEN}
+
+###
+
+### 6️⃣2️⃣ Provider: Complete Booking (Creates PAYOUT Transaction)
+PUT http://localhost:8081/api/provider/bookings/{BOOKING_ID}/complete
+Authorization: Bearer {PROVIDER_TOKEN}
+
+###
+
+### 6️⃣3️⃣ Provider: Try to Complete Already Completed Booking (Should fail - 400)
+PUT http://localhost:8081/api/provider/bookings/{BOOKING_ID}/complete
+Authorization: Bearer {PROVIDER_TOKEN}
+
+###
+
+### 6️⃣4️⃣ Provider: View All Reviews
+GET http://localhost:8081/api/provider/reviews
+Authorization: Bearer {PROVIDER_TOKEN}
+
+###
+
+### 6️⃣5️⃣ Provider: Get Transaction History (SUBSCRIPTION_PAYMENT, PAYOUT)
+GET http://localhost:8081/api/customer/transactions
+Authorization: Bearer {PROVIDER_TOKEN}
+
+###
+
+### ========== Admin: Refund Management ==========
+
+### 7️⃣1️⃣ Admin: View All Pending Refunds
+GET http://localhost:8081/api/admin/refunds/pending
+Authorization: Bearer {ADMIN_TOKEN}
+
+###
+
+### 7️⃣2️⃣ Admin: Approve Refund (Creates REFUND Transaction)
+PUT http://localhost:8081/api/admin/refunds/{REFUND_ID}/approve
+Authorization: Bearer {ADMIN_TOKEN}
+Content-Type: application/json
+
+{
+  "adminNotes": "Valid cancellation reason. Approved 50% refund."
+}
+
+###
+
+### 7️⃣3️⃣ Admin: Reject Refund
+PUT http://localhost:8081/api/admin/refunds/{REFUND_ID}/reject
+Authorization: Bearer {ADMIN_TOKEN}
+Content-Type: application/json
+
+{
+  "adminNotes": "Cancellation too late. Policy violated."
+}
+
+###
+
+### ========== Admin: Transaction Management ==========
+
+### 7️⃣4️⃣ Admin: View All Transactions (All Types)
+GET http://localhost:8081/api/admin/transactions
+Authorization: Bearer {ADMIN_TOKEN}
+
+###
+
+### 7️⃣5️⃣ Admin: View Platform Stats (Updated with Booking & Transaction Data)
+GET http://localhost:8081/api/admin/stats
+Authorization: Bearer {ADMIN_TOKEN}
+
+###
+
+### ═══════════════════════════════════════════════════════════════════════════════
+### 🧪 ERROR & VALIDATION TESTS - PHASE 4
+### ═══════════════════════════════════════════════════════════════════════════════
+
+### 8️⃣1️⃣ Book Already Booked Time Slot (Should fail - 400 Bad Request)
+POST http://localhost:8081/api/customer/bookings
+Authorization: Bearer {CUSTOMER_TOKEN}
+Content-Type: application/json
+
+{
+  "serviceId": 1,
+  "slotId": 1,
+  "paymentMethod": "MasterCard ****5678"
+}
+
+###
+
+### 8️⃣2️⃣ Book Time Slot in the Past (Should fail - 400 Bad Request)
+POST http://localhost:8081/api/customer/bookings
+Authorization: Bearer {CUSTOMER_TOKEN}
+Content-Type: application/json
+
+{
+  "serviceId": 1,
+  "slotId": 99,
+  "paymentMethod": "Visa ****1234"
+}
+
+###
+
+### 8️⃣3️⃣ Cancel Already Cancelled Booking (Should fail - 400 Bad Request)
+PUT http://localhost:8081/api/customer/bookings/{CANCELLED_BOOKING_ID}/cancel
+Authorization: Bearer {CUSTOMER_TOKEN}
+Content-Type: application/json
+
+{
+  "cancellationReason": "Changed my mind again"
+}
+
+###
+
+### 8️⃣4️⃣ Provider Tries to Complete Cancelled Booking (Should fail - 400)
+PUT http://localhost:8081/api/provider/bookings/{CANCELLED_BOOKING_ID}/complete
+Authorization: Bearer {PROVIDER_TOKEN}
+
+###
+
+### 8️⃣5️⃣ Submit Review with Invalid Rating (Should fail - 400)
+POST http://localhost:8081/api/customer/reviews
+Authorization: Bearer {CUSTOMER_TOKEN}
+Content-Type: application/json
+
+{
+  "bookingId": 1,
+  "rating": 6,
+  "comment": "Invalid rating test"
+}
+
+###
+
+### 8️⃣6️⃣ Customer Tries to Access Other Customer's Booking (Should fail - 404)
+GET http://localhost:8081/api/customer/bookings/{OTHER_CUSTOMER_BOOKING_ID}
+Authorization: Bearer {CUSTOMER_TOKEN}
+
+###
+
+### 8️⃣7️⃣ Admin Approves Already Approved Refund (Should fail - 400)
+PUT http://localhost:8081/api/admin/refunds/{APPROVED_REFUND_ID}/approve
+Authorization: Bearer {ADMIN_TOKEN}
+Content-Type: application/json
+
+{
+  "adminNotes": "Trying to approve again"
+}
+
+###
+
