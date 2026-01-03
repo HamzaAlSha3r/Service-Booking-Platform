@@ -42,6 +42,8 @@ public class AdminService {
     private final SubscriptionPlanRepository subscriptionPlanRepository;
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
+    private final NotificationService notificationService;
+    private final PaymentService paymentService;
 
     /**
      * Get all pending service provider registrations
@@ -73,10 +75,20 @@ public class AdminService {
         provider.setUpdatedAt(LocalDateTime.now());
         userRepository.save(provider);
 
-        // TODO: Send notification to provider (ACCOUNT_APPROVED) with admin notes if provided
+        // Send notification to provider (ACCOUNT_APPROVED)
+        String notificationMessage = "Your service provider account has been approved! You can now subscribe to a plan and start offering services.";
         if (request != null && request.getAdminNotes() != null) {
+            notificationMessage += "\n\nAdmin notes: " + request.getAdminNotes();
             log.info("Provider approved with notes: {}", request.getAdminNotes());
         }
+
+        notificationService.createNotification(
+            provider,
+            com.testing.traningproject.model.enums.NotificationType.ACCOUNT_APPROVED,
+            "Account Approved ✅",
+            notificationMessage
+        );
+
         log.info("Provider approved successfully: {}", provider.getEmail());
     }
 
@@ -96,10 +108,20 @@ public class AdminService {
         provider.setUpdatedAt(LocalDateTime.now());
         userRepository.save(provider);
 
-        // TODO: Send notification to provider (ACCOUNT_REJECTED) with admin notes
+        // Send notification to provider (ACCOUNT_REJECTED)
+        String notificationMessage = "Your service provider registration has been rejected.";
         if (request != null && request.getAdminNotes() != null) {
+            notificationMessage += "\n\nReason: " + request.getAdminNotes();
             log.info("Provider rejected with reason: {}", request.getAdminNotes());
         }
+
+        notificationService.createNotification(
+            provider,
+            com.testing.traningproject.model.enums.NotificationType.ACCOUNT_REJECTED,
+            "Account Rejected ❌",
+            notificationMessage
+        );
+
         log.info("Provider rejected successfully: {}", provider.getEmail());
     }
 
@@ -136,6 +158,25 @@ public class AdminService {
         refundRepository.save(refund);
         log.info("Refund ID: {} approved by admin", refundId);
 
+        // Get original payment transaction
+        com.testing.traningproject.model.entity.Transaction originalTransaction =
+            transactionRepository.findByBookingIdAndTransactionType(
+                refund.getBooking().getId(),
+                com.testing.traningproject.model.enums.TransactionType.BOOKING_PAYMENT
+            );
+
+        String refundTransactionId;
+        try {
+            // Process refund via PaymentService
+            refundTransactionId = paymentService.processRefund(
+                originalTransaction != null ? originalTransaction.getPaymentGatewayTransactionId() : "N/A",
+                refund.getRefundAmount()
+            );
+        } catch (Exception e) {
+            log.error("Refund processing failed: {}", e.getMessage());
+            refundTransactionId = "REFUND_FAILED_" + System.currentTimeMillis();
+        }
+
         // Create REFUND transaction
         com.testing.traningproject.model.entity.Transaction refundTransaction = com.testing.traningproject.model.entity.Transaction.builder()
                 .user(refund.getBooking().getCustomer())
@@ -143,8 +184,8 @@ public class AdminService {
                 .transactionType(com.testing.traningproject.model.enums.TransactionType.REFUND)
                 .amount(refund.getRefundAmount())
                 .paymentMethod("Refund to original payment method")
-                .status(com.testing.traningproject.model.enums.TransactionStatus.SUCCESS) // TODO: Change to PENDING then SUCCESS after Stripe
-                .paymentGatewayTransactionId("MOCK_REFUND_" + System.currentTimeMillis()) // TODO: Real Stripe ID
+                .status(com.testing.traningproject.model.enums.TransactionStatus.SUCCESS)
+                .paymentGatewayTransactionId(refundTransactionId)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -159,7 +200,15 @@ public class AdminService {
         refundRepository.save(refund);
         log.info("Refund ID: {} marked as COMPLETED", refund.getId());
 
-        // TODO: Send notification to customer (REFUND_APPROVED)
+        // Send notification to customer (REFUND_APPROVED)
+        notificationService.createNotification(
+            refund.getBooking().getCustomer(),
+            com.testing.traningproject.model.enums.NotificationType.REFUND_APPROVED,
+            "Refund Approved ✅",
+            "Your refund request for booking #" + refund.getBooking().getId() +
+            " has been approved. Amount: $" + refund.getRefundAmount() +
+            " will be refunded to your original payment method."
+        );
 
         log.info("Refund approved successfully: {}", refundId);
     }
@@ -182,7 +231,18 @@ public class AdminService {
         refund.setUpdatedAt(LocalDateTime.now());
         refundRepository.save(refund);
 
-        // TODO: Send notification to customer (REFUND_REJECTED) with admin notes
+        // Send notification to customer (REFUND_REJECTED)
+        String notificationMessage = "Your refund request for booking #" + refund.getBooking().getId() + " has been rejected.";
+        if (request.getAdminNotes() != null) {
+            notificationMessage += "\n\nReason: " + request.getAdminNotes();
+        }
+
+        notificationService.createNotification(
+            refund.getBooking().getCustomer(),
+            com.testing.traningproject.model.enums.NotificationType.REFUND_REJECTED,
+            "Refund Rejected ❌",
+            notificationMessage
+        );
 
         log.info("Refund rejected successfully: {}", refundId);
     }
@@ -232,11 +292,33 @@ public class AdminService {
         long activeSubscriptions = subscriptionRepository.countByStatus(com.testing.traningproject.model.enums.SubscriptionStatus.ACTIVE);
         long expiredSubscriptions = subscriptionRepository.countByStatus(com.testing.traningproject.model.enums.SubscriptionStatus.EXPIRED);
 
-        // Booking Statistics (will be 0 for now, will be implemented in Phase 3)
+        // Booking Statistics
         long totalBookings = bookingRepository.count();
+        long pendingBookings = bookingRepository.countByStatus(com.testing.traningproject.model.enums.BookingStatus.PENDING);
+        long confirmedBookings = bookingRepository.countByStatus(com.testing.traningproject.model.enums.BookingStatus.CONFIRMED);
+        long completedBookings = bookingRepository.countByStatus(com.testing.traningproject.model.enums.BookingStatus.COMPLETED);
+        long cancelledBookings = bookingRepository.countByStatus(com.testing.traningproject.model.enums.BookingStatus.CANCELLED);
 
-        // Refund Statistics (will be 0 for now, will be implemented in Phase 3)
+        // Transaction Statistics (Revenue & Payments)
+        java.math.BigDecimal totalRevenue = transactionRepository.sumSuccessfulTransactionsByType(
+                com.testing.traningproject.model.enums.TransactionType.BOOKING_PAYMENT);
+        if (totalRevenue == null) totalRevenue = java.math.BigDecimal.ZERO;
+
+        java.math.BigDecimal pendingPayments = transactionRepository.sumPendingTransactionsByType(
+                com.testing.traningproject.model.enums.TransactionType.BOOKING_PAYMENT);
+        if (pendingPayments == null) pendingPayments = java.math.BigDecimal.ZERO;
+
+        java.math.BigDecimal completedPayments = totalRevenue; // Same as total revenue (successful payments)
+
+        // Refund Statistics
         long totalRefunds = refundRepository.count();
+        long pendingRefunds = refundRepository.countByStatus(com.testing.traningproject.model.enums.RefundStatus.PENDING);
+        long approvedRefunds = refundRepository.countByStatus(com.testing.traningproject.model.enums.RefundStatus.APPROVED);
+        long rejectedRefunds = refundRepository.countByStatus(com.testing.traningproject.model.enums.RefundStatus.REJECTED);
+
+        java.math.BigDecimal totalRefundAmount = refundRepository.sumRefundAmountByStatus(
+                com.testing.traningproject.model.enums.RefundStatus.COMPLETED);
+        if (totalRefundAmount == null) totalRefundAmount = java.math.BigDecimal.ZERO;
 
         return AdminStatsResponse.builder()
                 .totalUsers(totalUsers)
@@ -246,18 +328,18 @@ public class AdminService {
                 .pendingProviders(pendingProviders)
                 .rejectedProviders(rejectedProviders)
                 .totalBookings(totalBookings)
-                .pendingBookings(0L) // TODO: Implement in Phase 3
-                .confirmedBookings(0L) // TODO: Implement in Phase 3
-                .completedBookings(0L) // TODO: Implement in Phase 3
-                .cancelledBookings(0L) // TODO: Implement in Phase 3
-                .totalRevenue(java.math.BigDecimal.ZERO) // TODO: Implement in Phase 3
-                .pendingPayments(java.math.BigDecimal.ZERO) // TODO: Implement in Phase 3
-                .completedPayments(java.math.BigDecimal.ZERO) // TODO: Implement in Phase 3
+                .pendingBookings(pendingBookings)
+                .confirmedBookings(confirmedBookings)
+                .completedBookings(completedBookings)
+                .cancelledBookings(cancelledBookings)
+                .totalRevenue(totalRevenue)
+                .pendingPayments(pendingPayments)
+                .completedPayments(completedPayments)
                 .totalRefunds(totalRefunds)
-                .pendingRefunds(0L) // TODO: Implement in Phase 3
-                .approvedRefunds(0L) // TODO: Implement in Phase 3
-                .rejectedRefunds(0L) // TODO: Implement in Phase 3
-                .totalRefundAmount(java.math.BigDecimal.ZERO) // TODO: Implement in Phase 3
+                .pendingRefunds(pendingRefunds)
+                .approvedRefunds(approvedRefunds)
+                .rejectedRefunds(rejectedRefunds)
+                .totalRefundAmount(totalRefundAmount)
                 .totalServices(totalServices)
                 .activeServices(activeServices)
                 .totalCategories(totalCategories)

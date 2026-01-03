@@ -3,8 +3,11 @@ package com.testing.traningproject.repository;
 import com.testing.traningproject.model.entity.Refund;
 import com.testing.traningproject.model.enums.RefundStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -25,5 +28,16 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
      * Used to check if refund already exists for a booking
      */
     boolean existsByBookingId(Long bookingId);
+
+    /**
+     * Count refunds by status
+     */
+    long countByStatus(RefundStatus status);
+
+    /**
+     * Sum refund amounts by status
+     */
+    @Query("SELECT SUM(r.refundAmount) FROM Refund r WHERE r.status = :status")
+    BigDecimal sumRefundAmountByStatus(@Param("status") RefundStatus status);
 }
 

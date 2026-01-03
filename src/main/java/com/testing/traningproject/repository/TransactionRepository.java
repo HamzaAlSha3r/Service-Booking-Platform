@@ -22,6 +22,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query("SELECT t FROM Transaction t WHERE t.user.id = :userId ORDER BY t.createdAt DESC")
     List<Transaction> findByUserId(@Param("userId") Long userId);
 
+    // Find transaction by booking ID and type
+    @Query("SELECT t FROM Transaction t WHERE t.booking.id = :bookingId AND t.transactionType = :type")
+    Transaction findByBookingIdAndTransactionType(@Param("bookingId") Long bookingId, @Param("type") TransactionType type);
+
     // Find transactions by type
     List<Transaction> findByTransactionType(TransactionType transactionType);
 
@@ -37,6 +41,16 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
            "WHERE t.transactionType = 'REFUND' AND t.status = 'SUCCESS'")
     BigDecimal calculateTotalRefundAmount();
+
+    // Sum successful transactions by type
+    @Query("SELECT SUM(t.amount) FROM Transaction t " +
+           "WHERE t.transactionType = :type AND t.status = 'SUCCESS'")
+    BigDecimal sumSuccessfulTransactionsByType(@Param("type") TransactionType type);
+
+    // Sum pending transactions by type
+    @Query("SELECT SUM(t.amount) FROM Transaction t " +
+           "WHERE t.transactionType = :type AND t.status = 'PENDING'")
+    BigDecimal sumPendingTransactionsByType(@Param("type") TransactionType type);
 
     // Count transactions by status
     long countByStatus(TransactionStatus status);

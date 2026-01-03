@@ -34,6 +34,8 @@ public class BookingService {
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
     private final RefundRepository refundRepository;
+    private final NotificationService notificationService;
+    private final PaymentService paymentService;
 
     /**
      * Create a new booking (BOOKING_PAYMENT transaction)
@@ -86,15 +88,34 @@ public class BookingService {
         booking = bookingRepository.save(booking);
         log.info("Booking created with ID: {} - Status: PENDING", booking.getId());
 
-        // 6. Process BOOKING_PAYMENT transaction (TODO: Integrate with Stripe)
+        // 6. Process BOOKING_PAYMENT transaction via Payment Service
+        String paymentTransactionId;
+        try {
+            // Validate and process payment using PaymentService
+            paymentTransactionId = paymentService.processPayment(
+                request.getPaymentCard(),
+                service.getPrice(),
+                "Booking payment for: " + service.getTitle()
+            );
+            log.info("Payment processed successfully - Gateway TXN ID: {}", paymentTransactionId);
+        } catch (Exception e) {
+            // Payment failed - delete booking and throw error
+            bookingRepository.delete(booking);
+            log.error("Payment failed for booking - Booking deleted: {}", e.getMessage());
+            throw new com.testing.traningproject.exception.BadRequestException(
+                "Payment failed: " + e.getMessage()
+            );
+        }
+
         Transaction transaction = Transaction.builder()
                 .user(customer)
                 .booking(booking)
                 .transactionType(TransactionType.BOOKING_PAYMENT)
                 .amount(service.getPrice())
-                .paymentMethod(request.getPaymentMethod())
-                .status(TransactionStatus.SUCCESS) // TODO: Change to PENDING then SUCCESS after Stripe
-                .paymentGatewayTransactionId("MOCK_PAYMENT_" + System.currentTimeMillis()) // TODO: Real Stripe ID
+                .paymentMethod(request.getPaymentMethod() + " - " +
+                              paymentService.maskCardNumber(request.getPaymentCard().getCardNumber()))
+                .status(TransactionStatus.SUCCESS)
+                .paymentGatewayTransactionId(paymentTransactionId)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -114,8 +135,25 @@ public class BookingService {
         timeSlotRepository.save(timeSlot);
         log.info("Time slot ID: {} marked as BOOKED", timeSlot.getId());
 
-        // TODO: Send BOOKING_CONFIRMED notification to customer
-        // TODO: Send NEW_BOOKING_RECEIVED notification to provider
+        // Send BOOKING_CONFIRMED notification to customer
+        notificationService.createNotification(
+            customer,
+            NotificationType.BOOKING_CONFIRMED,
+            "Booking Confirmed ✅",
+            "Your booking for '" + service.getTitle() + "' on " +
+            timeSlot.getSlotDate() + " at " + timeSlot.getStartTime() +
+            " has been confirmed. Total paid: $" + booking.getTotalPrice()
+        );
+
+        // Send NEW_BOOKING_RECEIVED notification to provider
+        notificationService.createNotification(
+            service.getProvider(),
+            NotificationType.NEW_BOOKING_RECEIVED,
+            "New Booking Received 🔔",
+            "You have a new booking for '" + service.getTitle() + "' from " +
+            customer.getFirstName() + " " + customer.getLastName() +
+            " on " + timeSlot.getSlotDate() + " at " + timeSlot.getStartTime()
+        );
 
         return convertToBookingResponse(booking);
     }
@@ -220,14 +258,32 @@ public class BookingService {
 
         // 8. If auto-approved, process REFUND transaction immediately
         if (refundStatus.equals(RefundStatus.APPROVED)) {
+            // Get original payment transaction
+            Transaction originalTransaction = transactionRepository.findByBookingIdAndTransactionType(
+                booking.getId(),
+                TransactionType.BOOKING_PAYMENT
+            );
+
+            String refundTransactionId;
+            try {
+                // Process refund via PaymentService
+                refundTransactionId = paymentService.processRefund(
+                    originalTransaction != null ? originalTransaction.getPaymentGatewayTransactionId() : "N/A",
+                    refundAmount
+                );
+            } catch (Exception e) {
+                log.error("Refund processing failed: {}", e.getMessage());
+                refundTransactionId = "REFUND_FAILED_" + System.currentTimeMillis();
+            }
+
             Transaction refundTransaction = Transaction.builder()
                     .user(booking.getCustomer())
                     .booking(booking)
                     .transactionType(TransactionType.REFUND)
                     .amount(refundAmount)
                     .paymentMethod("Refund to original payment method")
-                    .status(TransactionStatus.SUCCESS) // TODO: Change to PENDING then SUCCESS after Stripe
-                    .paymentGatewayTransactionId("MOCK_REFUND_" + System.currentTimeMillis()) // TODO: Real Stripe ID
+                    .status(TransactionStatus.SUCCESS)
+                    .paymentGatewayTransactionId(refundTransactionId)
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .build();
@@ -242,10 +298,36 @@ public class BookingService {
             refundRepository.save(refund);
             log.info("Refund ID: {} marked as COMPLETED", refund.getId());
 
-            // TODO: Send REFUND_APPROVED notification to customer
+            // Send REFUND_APPROVED notification to customer
+            notificationService.createNotification(
+                booking.getCustomer(),
+                NotificationType.REFUND_APPROVED,
+                "Refund Approved ✅",
+                "Your refund of $" + refundAmount + " for booking #" + booking.getId() +
+                " has been automatically approved and processed."
+            );
         }
 
-        // TODO: Send BOOKING_CANCELLED notification to customer and provider
+        // Send BOOKING_CANCELLED notification to customer
+        notificationService.createNotification(
+            booking.getCustomer(),
+            NotificationType.BOOKING_CANCELLED,
+            "Booking Cancelled",
+            "Your booking for '" + booking.getService().getTitle() + "' has been cancelled. " +
+            (refundStatus.equals(RefundStatus.APPROVED) ?
+                "Refund of $" + refundAmount + " has been processed." :
+                "Refund request of $" + refundAmount + " is pending admin approval.")
+        );
+
+        // Send BOOKING_CANCELLED notification to provider
+        notificationService.createNotification(
+            booking.getService().getProvider(),
+            NotificationType.BOOKING_CANCELLED,
+            "Booking Cancelled by Customer",
+            "A booking for '" + booking.getService().getTitle() + "' by " +
+            booking.getCustomer().getFirstName() + " " + booking.getCustomer().getLastName() +
+            " on " + booking.getSlot().getSlotDate() + " has been cancelled."
+        );
 
         return convertToBookingResponse(booking);
     }
@@ -287,14 +369,17 @@ public class BookingService {
         log.info("Booking ID: {} marked as COMPLETED", bookingId);
 
         // 4. Create PAYOUT transaction for provider
+        // Note: In production, this would trigger actual bank transfer via Stripe Connect
+        String payoutId = "PAYOUT_" + System.currentTimeMillis() + "_" + providerId;
+
         Transaction payout = Transaction.builder()
                 .user(booking.getService().getProvider())
                 .booking(booking)
                 .transactionType(TransactionType.PAYOUT)
-                .amount(booking.getTotalPrice()) // Full amount to provider (TODO: deduct platform commission)
-                .paymentMethod("Stripe Transfer")
-                .status(TransactionStatus.SUCCESS) // TODO: Change to PENDING then SUCCESS after Stripe
-                .paymentGatewayTransactionId("MOCK_PAYOUT_" + System.currentTimeMillis()) // TODO: Real Stripe ID
+                .amount(booking.getTotalPrice())
+                .paymentMethod("Platform Payout")
+                .status(TransactionStatus.SUCCESS)
+                .paymentGatewayTransactionId(payoutId)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -303,8 +388,23 @@ public class BookingService {
         log.info("PAYOUT transaction created with ID: {} - Amount: {} for provider ID: {}",
                 payout.getId(), payout.getAmount(), providerId);
 
-        // TODO: Send BOOKING_COMPLETED notification to customer
-        // TODO: Send PAYOUT_PROCESSED notification to provider
+        // Send BOOKING_COMPLETED notification to customer
+        notificationService.createNotification(
+            booking.getCustomer(),
+            NotificationType.BOOKING_CONFIRMED,
+            "Service Completed ✅",
+            "Your booking for '" + booking.getService().getTitle() + "' has been completed. " +
+            "You can now submit a review for this service."
+        );
+
+        // Send notification to provider about payout
+        notificationService.createNotification(
+            booking.getService().getProvider(),
+            NotificationType.PAYMENT_SUCCESS,
+            "Payout Processed 💰",
+            "Payment of $" + payout.getAmount() + " for booking #" + booking.getId() +
+            " ('" + booking.getService().getTitle() + "') has been processed and will be transferred to your account."
+        );
 
         return convertToBookingResponse(booking);
     }

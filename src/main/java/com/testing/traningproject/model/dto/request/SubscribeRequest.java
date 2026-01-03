@@ -1,5 +1,6 @@
 package com.testing.traningproject.model.dto.request;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,7 +20,12 @@ public class SubscribeRequest {
     @NotNull(message = "Plan ID is required")
     private Integer planId;
 
-    private String paymentMethod; // "STRIPE", "PAYPAL", etc.
+    @NotNull(message = "Payment method is required")
+    private String paymentMethod; // "Credit Card", "Debit Card"
+
+    @NotNull(message = "Payment card information is required")
+    @Valid
+    private PaymentCardRequest paymentCard;
 
     @Builder.Default
     private Boolean autoRenew = true;

@@ -1,5 +1,6 @@
 package com.testing.traningproject.model.dto.request;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,6 +23,9 @@ public class CreateBookingRequest {
     private Long slotId;
 
     @NotNull(message = "Payment method is required")
-    private String paymentMethod; // e.g., "Visa", "MasterCard", "PayPal"
-}
+    private String paymentMethod; // e.g., "Credit Card", "Debit Card"
 
+    @NotNull(message = "Payment card information is required")
+    @Valid
+    private PaymentCardRequest paymentCard;
+}

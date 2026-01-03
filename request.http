@@ -324,8 +324,16 @@ Content-Type: application/json
 
 {
   "planId": 1,
-  "paymentMethod": "STRIPE",
-  "autoRenew": true
+  "paymentMethod": "Credit Card",
+  "autoRenew": true,
+  "paymentCard": {
+    "cardNumber": "5425233430109903",
+    "cardHolderName": "ALI AHMAD",
+    "expiryMonth": 6,
+    "expiryYear": 2027,
+    "cvv": "456",
+    "billingAddress": "456 Commerce Ave, Nablus, Palestine"
+  }
 }
 
 ###
@@ -566,7 +574,15 @@ Content-Type: application/json
 {
   "serviceId": 1,
   "slotId": 1,
-  "paymentMethod": "Visa ****1234"
+  "paymentMethod": "Credit Card",
+  "paymentCard": {
+    "cardNumber": "4532015112830366",
+    "cardHolderName": "HAMZA SHAER",
+    "expiryMonth": 12,
+    "expiryYear": 2028,
+    "cvv": "123",
+    "billingAddress": "123 Main Street, Ramallah, Palestine"
+  }
 }
 
 ###
@@ -796,3 +812,180 @@ Content-Type: application/json
 
 ###
 
+### ═══════════════════════════════════════════════════════════════════════════════
+### NOTIFICATIONS TESTING
+### ═══════════════════════════════════════════════════════════════════════════════
+
+### 8️⃣8️⃣ Get All Notifications (Customer)
+GET http://localhost:8081/api/notifications
+Authorization: Bearer {CUSTOMER_TOKEN}
+
+###
+
+### 8️⃣9️⃣ Get All Notifications (Provider)
+GET http://localhost:8081/api/notifications
+Authorization: Bearer {PROVIDER_TOKEN}
+
+###
+
+### 9️⃣0️⃣ Get Unread Notifications Only
+GET http://localhost:8081/api/notifications/unread
+Authorization: Bearer {CUSTOMER_TOKEN}
+
+###
+
+### 9️⃣1️⃣ Get Unread Notifications Count
+GET http://localhost:8081/api/notifications/unread/count
+Authorization: Bearer {PROVIDER_TOKEN}
+
+###
+
+### 9️⃣2️⃣ Mark Notification as Read
+PUT http://localhost:8081/api/notifications/{NOTIFICATION_ID}/read
+Authorization: Bearer {CUSTOMER_TOKEN}
+
+###
+
+### 9️⃣3️⃣ Mark All Notifications as Read
+PUT http://localhost:8081/api/notifications/read-all
+Authorization: Bearer {PROVIDER_TOKEN}
+
+###
+
+### 9️⃣4️⃣ Delete Notification
+DELETE http://localhost:8081/api/notifications/{NOTIFICATION_ID}
+Authorization: Bearer {CUSTOMER_TOKEN}
+
+###
+
+### ═══════════════════════════════════════════════════════════════════════════════
+### PAYMENT VALIDATION TESTING
+### ═══════════════════════════════════════════════════════════════════════════════
+
+### 9️⃣5️⃣ Test Invalid Card Number (Fails Luhn Check - Should fail - 400)
+POST http://localhost:8081/api/customer/bookings
+Authorization: Bearer {CUSTOMER_TOKEN}
+Content-Type: application/json
+
+{
+  "serviceId": 1,
+  "slotId": 2,
+  "paymentMethod": "Credit Card",
+  "paymentCard": {
+    "cardNumber": "1234567890123456",
+    "cardHolderName": "TEST USER",
+    "expiryMonth": 12,
+    "expiryYear": 2028,
+    "cvv": "123",
+    "billingAddress": "123 Test Street, Test City"
+  }
+}
+
+###
+
+### 9️⃣6️⃣ Test Blocked Card (All Zeros - Should fail - 400)
+POST http://localhost:8081/api/customer/bookings
+Authorization: Bearer {CUSTOMER_TOKEN}
+Content-Type: application/json
+
+{
+  "serviceId": 1,
+  "slotId": 3,
+  "paymentMethod": "Credit Card",
+  "paymentCard": {
+    "cardNumber": "0000000000000000",
+    "cardHolderName": "BLOCKED USER",
+    "expiryMonth": 12,
+    "expiryYear": 2028,
+    "cvv": "000",
+    "billingAddress": "Blocked Address"
+  }
+}
+
+###
+
+### 9️⃣7️⃣ Test Expired Card (Should fail - 400)
+POST http://localhost:8081/api/subscriptions/subscribe
+Authorization: Bearer {PROVIDER_TOKEN}
+Content-Type: application/json
+
+{
+  "planId": 1,
+  "paymentMethod": "Credit Card",
+  "autoRenew": true,
+  "paymentCard": {
+    "cardNumber": "4532015112830366",
+    "cardHolderName": "EXPIRED CARD",
+    "expiryMonth": 12,
+    "expiryYear": 2020,
+    "cvv": "123",
+    "billingAddress": "Test Address"
+  }
+}
+
+###
+
+### 9️⃣8️⃣ Test Invalid CVV (Should fail - 400)
+POST http://localhost:8081/api/customer/bookings
+Authorization: Bearer {CUSTOMER_TOKEN}
+Content-Type: application/json
+
+{
+  "serviceId": 1,
+  "slotId": 4,
+  "paymentMethod": "Credit Card",
+  "paymentCard": {
+    "cardNumber": "4532015112830366",
+    "cardHolderName": "TEST USER",
+    "expiryMonth": 12,
+    "expiryYear": 2028,
+    "cvv": "12",
+    "billingAddress": "Test Address"
+  }
+}
+
+###
+
+### 9️⃣9️⃣ Test Missing Payment Card (Should fail - 400)
+POST http://localhost:8081/api/customer/bookings
+Authorization: Bearer {CUSTOMER_TOKEN}
+Content-Type: application/json
+
+{
+  "serviceId": 1,
+  "slotId": 5,
+  "paymentMethod": "Credit Card"
+}
+
+###
+
+### 1️⃣0️⃣0️⃣ Test Valid Alternative Card (MasterCard - Should succeed)
+POST http://localhost:8081/api/subscriptions/subscribe
+Authorization: Bearer {PROVIDER_TOKEN}
+Content-Type: application/json
+
+{
+  "planId": 1,
+  "paymentMethod": "Debit Card",
+  "autoRenew": false,
+  "paymentCard": {
+    "cardNumber": "5425233430109903",
+    "cardHolderName": "JOHN DOE",
+    "expiryMonth": 3,
+    "expiryYear": 2029,
+    "cvv": "789",
+    "billingAddress": "789 Finance Road, Bethlehem, Palestine"
+  }
+}
+
+###
+
+### ═══════════════════════════════════════════════════════════════════════════════
+### 🎉 END OF API TESTING - ALL PHASES COMPLETE WITH PAYMENT VALIDATION
+### ═══════════════════════════════════════════════════════════════════════════════
+###
+### 📝 Note: See TEST-PAYMENT-CARDS.md for valid test card numbers
+### 🔒 All payment data is validated using Luhn Algorithm
+### ✅ Card numbers are masked in database (****xxxx format)
+### 💳 Transaction IDs are generated for tracking
+### ═══════════════════════════════════════════════════════════════════════════════

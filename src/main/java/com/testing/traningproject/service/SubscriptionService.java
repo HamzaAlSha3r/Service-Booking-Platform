@@ -39,6 +39,8 @@ public class SubscriptionService {
     private final SubscriptionPlanRepository subscriptionPlanRepository;
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
+    private final NotificationService notificationService;
+    private final PaymentService paymentService;
 
     /**
      * Get all available subscription plans
@@ -108,20 +110,48 @@ public class SubscriptionService {
 
         subscription = subscriptionRepository.save(subscription);
 
-        // Process payment
+        // Process payment via PaymentService
+        String paymentTransactionId;
+        try {
+            // Validate and process payment
+            paymentTransactionId = paymentService.processPayment(
+                request.getPaymentCard(),
+                plan.getPrice(),
+                "Subscription payment for: " + plan.getName()
+            );
+            log.info("Subscription payment processed successfully - Gateway TXN ID: {}", paymentTransactionId);
+        } catch (Exception e) {
+            // Payment failed - delete subscription and throw error
+            subscriptionRepository.delete(subscription);
+            log.error("Subscription payment failed - Subscription deleted: {}", e.getMessage());
+            throw new BadRequestException("Payment failed: " + e.getMessage());
+        }
+
         Transaction transaction = Transaction.builder()
                 .user(user)
                 .subscription(subscription)
                 .transactionType(com.testing.traningproject.model.enums.TransactionType.SUBSCRIPTION_PAYMENT)
                 .amount(plan.getPrice())
-                .paymentMethod(request.getPaymentMethod())
+                .paymentMethod(request.getPaymentMethod() + " - " +
+                              paymentService.maskCardNumber(request.getPaymentCard().getCardNumber()))
                 .status(TransactionStatus.SUCCESS)
+                .paymentGatewayTransactionId(paymentTransactionId)
+                .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
         transactionRepository.save(transaction);
 
         log.info("Subscription created successfully for user ID: {} - Subscription ID: {}", userId, subscription.getId());
+
+        // Send PAYMENT_SUCCESS notification
+        notificationService.createNotification(
+            user,
+            com.testing.traningproject.model.enums.NotificationType.PAYMENT_SUCCESS,
+            "Subscription Activated ✅",
+            "Your subscription to '" + plan.getName() + "' has been activated successfully! " +
+            "Valid until " + endDate + ". You can now create and manage services."
+        );
 
         return convertToSubscriptionResponse(subscription);
     }

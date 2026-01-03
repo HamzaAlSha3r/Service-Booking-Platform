@@ -32,6 +32,7 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     /**
      * Create a new review (only for COMPLETED bookings)
@@ -77,12 +78,19 @@ public class ReviewService {
         log.info("Provider ID: {} - New average rating: {} - Total reviews: {}",
                 provider.getId(), newAverageRating, totalReviews);
 
-        // TODO: Update User entity with averageRating and totalReviews fields
-        // TODO: provider.setAverageRating(newAverageRating);
-        // TODO: provider.setTotalReviews(totalReviews);
-        // TODO: userRepository.save(provider);
+        // Note: averageRating and totalReviews can be calculated dynamically using repository methods
+        // No need to store them in User entity (denormalization trade-off)
 
-        // TODO: Send REVIEW_RECEIVED notification to provider
+        // Send REVIEW_RECEIVED notification to provider
+        notificationService.createNotification(
+            provider,
+            com.testing.traningproject.model.enums.NotificationType.REVIEW_RECEIVED,
+            "New Review Received ⭐",
+            "You received a new " + request.getRating() + "-star review for '" +
+            booking.getService().getTitle() + "' from " +
+            booking.getCustomer().getFirstName() + " " + booking.getCustomer().getLastName() +
+            (request.getComment() != null ? "\n\nComment: \"" + request.getComment() + "\"" : "")
+        );
 
         return convertToReviewResponse(review);
     }
