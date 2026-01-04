@@ -120,7 +120,6 @@ public class ProviderController {
 
     /**
      * Get all bookings for the provider
-     * GET /api/provider/bookings
      */
     @GetMapping("/bookings")
     public ResponseEntity<List<BookingResponse>> getMyBookings(
@@ -131,7 +130,6 @@ public class ProviderController {
 
     /**
      * Mark booking as completed (triggers PAYOUT transaction)
-     * PUT /api/provider/bookings/{id}/complete
      */
     @PutMapping("/bookings/{id}/complete")
     public ResponseEntity<BookingResponse> completeBooking(
@@ -146,7 +144,6 @@ public class ProviderController {
 
     /**
      * Get all reviews for the provider
-     * GET /api/provider/reviews
      */
     @GetMapping("/reviews")
     public ResponseEntity<List<ReviewResponse>> getMyReviews(

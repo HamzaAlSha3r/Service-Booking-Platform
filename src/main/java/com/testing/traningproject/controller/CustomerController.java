@@ -5,10 +5,12 @@ import com.testing.traningproject.model.dto.request.CreateBookingRequest;
 import com.testing.traningproject.model.dto.request.CreateReviewRequest;
 import com.testing.traningproject.model.dto.response.BookingResponse;
 import com.testing.traningproject.model.dto.response.ReviewResponse;
+import com.testing.traningproject.model.dto.response.TimeSlotResponse;
 import com.testing.traningproject.model.dto.response.TransactionResponse;
 import com.testing.traningproject.security.CustomUserDetails;
 import com.testing.traningproject.service.BookingService;
 import com.testing.traningproject.service.ReviewService;
+import com.testing.traningproject.service.TimeSlotService;
 import com.testing.traningproject.service.TransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,12 +36,30 @@ public class CustomerController {
     private final BookingService bookingService;
     private final ReviewService reviewService;
     private final TransactionService transactionService;
+    private final TimeSlotService timeSlotService;
+
+    // ==================== Time Slot Endpoints ====================
+
+    /**
+     * Get available time slots for a service
+     */
+    @GetMapping("/services/{serviceId}/slots")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<List<TimeSlotResponse>> getAvailableTimeSlots(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long serviceId) {
+
+        log.info("Customer ID: {} fetching available time slots for service ID: {}", userDetails.getId(), serviceId);
+
+        List<TimeSlotResponse> slots = timeSlotService.getAvailableTimeSlotsForService(serviceId);
+
+        return ResponseEntity.ok(slots);
+    }
 
     // ==================== Booking Endpoints ====================
 
     /**
      * Create a new booking
-     * POST /api/customer/bookings
      */
     @PostMapping("/bookings")
     @PreAuthorize("hasRole('CUSTOMER')")
@@ -56,7 +76,6 @@ public class CustomerController {
 
     /**
      * Get all bookings for the authenticated customer
-     * GET /api/customer/bookings
      */
     @GetMapping("/bookings")
     @PreAuthorize("hasRole('CUSTOMER')")
@@ -72,7 +91,6 @@ public class CustomerController {
 
     /**
      * Get booking by ID
-     * GET /api/customer/bookings/{id}
      */
     @GetMapping("/bookings/{id}")
     @PreAuthorize("hasRole('CUSTOMER')")
@@ -89,7 +107,6 @@ public class CustomerController {
 
     /**
      * Cancel a booking
-     * PUT /api/customer/bookings/{id}/cancel
      */
     @PutMapping("/bookings/{id}/cancel")
     @PreAuthorize("hasRole('CUSTOMER')")
@@ -109,7 +126,6 @@ public class CustomerController {
 
     /**
      * Submit a review for a completed booking
-     * POST /api/customer/reviews
      */
     @PostMapping("/reviews")
     @PreAuthorize("hasRole('CUSTOMER')")
@@ -128,7 +144,6 @@ public class CustomerController {
 
     /**
      * Get all transactions for the authenticated customer
-     * GET /api/customer/transactions
      */
     @GetMapping("/transactions")
     @PreAuthorize("hasRole('CUSTOMER')")

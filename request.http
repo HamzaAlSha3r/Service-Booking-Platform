@@ -1,431 +1,404 @@
-### ═══════════════════════════════════════════════════════════════════════════════
-### 🎯 SERVICE BOOKING PLATFORM - API TESTING
-### ═══════════════════════════════════════════════════════════════════════════════
+###############################################################################
+# TRAINING PROJECT - API TESTING FILE
+# Complete REST API requests organized by phases
+###############################################################################
 
-### ═══════════════════════════════════════════════════════════════════════════════
-### PHASE 1: AUTHENTICATION & AUTHORIZATION
-### ═══════════════════════════════════════════════════════════════════════════════
+### ============================================================================
+### PHASE 1: AUTHENTICATION & USER MANAGEMENT
+### ============================================================================
 
-### ========== User Registration ==========
+### Variables
+@baseUrl = http://localhost:8081
+@adminEmail = admin@trainingproject.com
+@adminPassword = Admin@12345
+@customerEmail = customer2@example.com
+@customerPassword = Customer@123
+@providerEmail = provider2@example.com
+@providerPassword = Provider@123
 
-### 1️⃣ Register New Customer
-POST http://localhost:8081/api/auth/register
+### Admin Token
+@adminToken = eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhZG1pbkB0cmFpbmluZ3Byb2plY3QuY29tIiwiaWF0IjoxNzY3NTE3ODM1LCJleHAiOjE3Njc2MDQyMzV9.3lVnvaVuL_pxaYog7qBuG2ZTPjPHTTIv7jR0I-ELc2zSK4XPOY_GvyhCVwWZ_tdT
+### Customer Token
+@customerToken = eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJjdXN0b21lcjJAZXhhbXBsZS5jb20iLCJpYXQiOjE3Njc1MTkzMTIsImV4cCI6MTc2NzYwNTcxMn0.fSw42ezCRE46bfbnfyIwqInrlcgthBN8lirqV7Zhgv3jzlpxybuh4EVBvlFfiCLS
+### ---------- 1.1 Register Customer ----------
+# @name register-customer
+POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
 
 {
-  "firstName": "Hamza",
-  "lastName": "Shaer",
-  "email": "hamza@example.com",
-  "password": "Hamza@12345",
-  "phone": "+970599123456",
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "{{customerEmail}}",
+  "password": "{{customerPassword}}",
+  "phone": "+1234567890",
   "role": "CUSTOMER"
 }
 
-###
-
-### 2️⃣ Register New Service Provider
-POST http://localhost:8081/api/auth/register
+### ---------- 1.2 Register Service Provider ----------
+# @name register-provider
+POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
 
 {
-  "firstName": "Ali",
-  "lastName": "Ahmad",
-  "email": "ali.ahmad@example.com",
-  "password": "Ahmad@12345",
-  "phone": "+970599654321",
+  "firstName": "Jane",
+  "lastName": "Smith",
+  "email": "{{providerEmail}}",
+  "password": "{{providerPassword}}",
+  "phone": "+0987654321",
   "role": "SERVICE_PROVIDER",
-  "bio": "Experienced Java Developer with 5+ years in Spring Boot and Microservices",
-  "professionalTitle": "Senior Java Developer",
-  "certificateUrl": "https://example.com/certificates/ali-java.pdf"
+  "bio": "Expert Java developer with 10 years of experience",
+  "professionalTitle": "Senior Software Engineer",
+  "certificateUrl": "https://example.com/certificates/jane-smith.pdf"
 }
 
-###
-
-### ========== User Login ==========
-
-### 3️⃣ Login as Customer
-POST http://localhost:8081/api/auth/login
+### ---------- 1.3 Login Admin ----------
+# @name login-admin
+POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "hamza@example.com",
-  "password": "Hamza@12345"
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
 }
 
-###
-
-### 4️⃣ Login as Service Provider
-POST http://localhost:8081/api/auth/login
+### ---------- 1.4 Login Customer ----------
+# @name login-customer
+POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "ali.ahmad@example.com",
-  "password": "Ahmad@12345"
+  "email": "{{customerEmail}}",
+  "password": "{{customerPassword}}"
 }
 
-###
-
-### 5️⃣ Login as Admin
-POST http://localhost:8081/api/auth/login
+### ---------- 1.5 Login Provider (Will fail until approved) ----------
+# @name login-provider
+POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "admin@trainingproject.com",
-  "password": "Admin@12345"
+  "email": "{{providerEmail}}",
+  "password": "{{providerPassword}}"
 }
 
-###
-
-### ========== Authentication Error Testing ==========
-
-### 6️⃣ Register with Existing Email (Should fail - 409 Conflict)
-POST http://localhost:8081/api/auth/register
+### ---------- 1.6 Login with Wrong Password (Expect 401) ----------
+POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-  "firstName": "Test",
+  "email": "{{adminEmail}}",
+  "password": "wrongpassword"
+}
+
+### ---------- 1.7 Register with Duplicate Email (Expect 409) ----------
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Duplicate",
   "lastName": "User",
-  "email": "hamza@example.com",
-  "password": "Test@12345",
-  "phone": "+970599999999",
+  "email": "{{customerEmail}}",
+  "password": "Password@123",
   "role": "CUSTOMER"
 }
 
-###
-
-### 7️⃣ Register with Invalid Email (Should fail - 400 Bad Request)
-POST http://localhost:8081/api/auth/register
+### ---------- 1.8 Register with Invalid Email (Expect 400) ----------
+POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
 
 {
-  "firstName": "Test",
-  "lastName": "User",
+  "firstName": "Invalid",
+  "lastName": "Email",
   "email": "invalid-email",
-  "password": "Test@12345",
-  "phone": "+970599999999",
+  "password": "Password@123",
   "role": "CUSTOMER"
 }
 
-###
 
-### 8️⃣ Register with Weak Password (Should fail - 400 Bad Request)
-POST http://localhost:8081/api/auth/register
+### ============================================================================
+### PHASE 2: ADMIN OPERATIONS
+### ============================================================================
+
+### ---------- 2.1 Get Pending Provider Approvals ----------
+GET {{baseUrl}}/api/admin/providers/pending
+Authorization: Bearer {{adminToken}}
+
+### ---------- 2.2 Approve Service Provider ----------
+# @name approve-provider
+PUT {{baseUrl}}/api/admin/providers/9/approve
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
-  "firstName": "Test",
-  "lastName": "User",
-  "email": "test@example.com",
-  "password": "123",
-  "phone": "+970599999999",
-  "role": "CUSTOMER"
+  "adminNotes": "Credentials verified. Approved for service offering."
 }
 
-###
-
-### 9️⃣ Login with Wrong Password (Should fail - 401 Unauthorized)
-POST http://localhost:8081/api/auth/login
+### ---------- 2.3 Reject Service Provider ----------
+PUT {{baseUrl}}/api/admin/providers/3/reject
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
-  "email": "hamza@example.com",
-  "password": "WrongPassword123"
+  "adminNotes": "Insufficient credentials provided."
 }
 
-###
+### ---------- 2.4 Get All Categories (Admin View) ----------
+GET {{baseUrl}}/api/admin/categories
+Authorization: Bearer {{adminToken}}
 
-### 🔟 Login with Non-Existent Email (Should fail - 401 Unauthorized)
-POST http://localhost:8081/api/auth/login
+### ---------- 2.5 Create New Category ----------
+# @name create-category-programming
+POST {{baseUrl}}/api/admin/categories
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
-  "email": "nonexistent@example.com",
-  "password": "SomePassword123"
+  "name": "Programming",
+  "description": "Software development and programming courses",
+  "iconUrl": "https://example.com/icons/programming.png",
+  "isActive": true
 }
 
-###
-
-### ═══════════════════════════════════════════════════════════════════════════════
-### PHASE 2: ADMIN FEATURES
-### ═══════════════════════════════════════════════════════════════════════════════
-
-### ========== Provider Management ==========
-
-### 1️⃣1️⃣ Get Pending Service Providers
-GET http://localhost:8081/api/admin/providers/pending
-Authorization: Bearer {ADMIN_TOKEN}
-
-###
-
-### 1️⃣2️⃣ Approve Service Provider
-PUT http://localhost:8081/api/admin/providers/2/approve
-Authorization: Bearer {ADMIN_TOKEN}
+### ---------- 2.6 Create Category: Design ----------
+POST {{baseUrl}}/api/admin/categories
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
-  "adminNotes": "Certificate verified and approved. Welcome to the platform!"
+  "name": "Design",
+  "description": "Graphic design, UI/UX, and creative services",
+  "iconUrl": "https://example.com/icons/design.png",
+  "isActive": true
 }
 
-###
-
-### 1️⃣3️⃣ Reject Service Provider
-PUT http://localhost:8081/api/admin/providers/3/reject
-Authorization: Bearer {ADMIN_TOKEN}
+### ---------- 2.7 Create Category: Marketing ----------
+POST {{baseUrl}}/api/admin/categories
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
-  "adminNotes": "Certificate not valid or incomplete information provided"
+  "name": "Marketing",
+  "description": "Digital marketing and social media services",
+  "iconUrl": "https://example.com/icons/marketing.png",
+  "isActive": true
 }
 
-###
-
-### ========== Subscription Plan Management ==========
-
-### 1️⃣4️⃣ Get All Subscription Plans (Admin View - shows all including inactive)
-GET http://localhost:8081/api/admin/subscription-plans
-Authorization: Bearer {ADMIN_TOKEN}
-
-###
-
-### 1️⃣5️⃣ Create Monthly Subscription Plan
-POST http://localhost:8081/api/admin/subscription-plans
-Authorization: Bearer {ADMIN_TOKEN}
+### ---------- 2.8 Update Category ----------
+PUT {{baseUrl}}/api/admin/categories/1
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
-  "name": "Monthly Pro Plan",
-  "description": "Professional monthly subscription for service providers with premium features",
+  "name" : "programming",
+  "description": "Advanced programming and software engineering courses",
+  "isActive": true
+}
+
+### ---------- 2.9 Delete Category (Will fail if services exist) ----------
+DELETE {{baseUrl}}/api/admin/categories/5
+Authorization: Bearer {{adminToken}}
+
+### ---------- 2.10 Create Subscription Plan: Basic ----------
+# @name create-plan-basic
+POST {{baseUrl}}/api/admin/subscription-plans
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Basic Plan",
+  "description": "Perfect for starting providers - 1 month access",
   "price": 100.00,
   "durationDays": 30
 }
 
-###
-
-### 1️⃣6️⃣ Create Quarterly Subscription Plan
-POST http://localhost:8081/api/admin/subscription-plans
-Authorization: Bearer {ADMIN_TOKEN}
+### ---------- 2.11 Create Subscription Plan: Pro ----------
+POST {{baseUrl}}/api/admin/subscription-plans
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
-  "name": "Quarterly Plan",
-  "description": "Save 20% with quarterly subscription - 90 days access to all features",
-  "price": 240.00,
+  "name": "Pro Plan",
+  "description": "Most popular - 3 months access with 20% discount",
+  "price": 150.99,
   "durationDays": 90
 }
 
-###
-
-### 1️⃣7️⃣ Create Annual Subscription Plan
-POST http://localhost:8081/api/admin/subscription-plans
-Authorization: Bearer {ADMIN_TOKEN}
+### ---------- 2.12 Create Subscription Plan: Enterprise ----------
+POST {{baseUrl}}/api/admin/subscription-plans
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
-  "name": "Annual Plan",
-  "description": "Best value! Save 40% with annual subscription - 365 days",
-  "price": 720.00,
+  "name": "Enterprise Plan",
+  "description": "Best value - 12 months access with 40% discount",
+  "price": 215.99,
   "durationDays": 365
 }
 
-###
+### ---------- 2.13 Get All Subscription Plans ----------
+GET {{baseUrl}}/api/admin/subscription-plans
+Authorization: Bearer {{adminToken}}
 
-### 1️⃣8️⃣ Update Subscription Plan
-PUT http://localhost:8081/api/admin/subscription-plans/1
-Authorization: Bearer {ADMIN_TOKEN}
+### ---------- 2.14 Update Subscription Plan ----------
+PUT {{baseUrl}}/api/admin/subscription-plans/1
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
-  "name": "Monthly Premium Plan",
-  "price": 120.00,
-  "description": "Updated premium plan with more features and support"
+  "price": 24.99,
+  "description": "Starter plan - 1 month access (LIMITED OFFER!)"
 }
 
-###
+### ---------- 2.15 Get Platform Statistics ----------
+GET {{baseUrl}}/api/admin/stats
+Authorization: Bearer {{adminToken}}
 
-### 1️⃣9️⃣ Deactivate Subscription Plan (Don't delete, just deactivate)
-PUT http://localhost:8081/api/admin/subscription-plans/1
-Authorization: Bearer {ADMIN_TOKEN}
+### ---------- 2.16 Get All Transactions ----------
+GET {{baseUrl}}/api/admin/transactions
+Authorization: Bearer {{adminToken}}
+
+### ---------- 2.17 Get Pending Refund Requests ----------
+GET {{baseUrl}}/api/admin/refunds/pending
+Authorization: Bearer {{adminToken}}
+
+### ---------- 2.18 Approve Refund Request ----------
+PUT {{baseUrl}}/api/admin/refunds/1/approve
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
-  "isActive": false
+  "adminNotes": "Refund approved as per company policy."
 }
 
-###
-
-### 2️⃣0️⃣ Delete Subscription Plan (Only if no active subscriptions)
-DELETE http://localhost:8081/api/admin/subscription-plans/2
-Authorization: Bearer {ADMIN_TOKEN}
-
-###
-
-### ========== Platform Statistics ==========
-
-### 2️⃣1️⃣ Get Platform Statistics
-GET http://localhost:8081/api/admin/stats
-Authorization: Bearer {ADMIN_TOKEN}
-
-###
-
-### ========== Admin Error Testing ==========
-
-### 2️⃣2️⃣ Access Admin Endpoint without Token (Should fail - 401)
-GET http://localhost:8081/api/admin/providers/pending
-
-###
-
-### 2️⃣3️⃣ Access Admin Endpoint as Customer (Should fail - 403 Forbidden)
-GET http://localhost:8081/api/admin/providers/pending
-Authorization: Bearer {CUSTOMER_TOKEN}
-
-###
-
-### 2️⃣4️⃣ Approve Non-Existent Provider (Should fail - 404 Not Found)
-PUT http://localhost:8081/api/admin/providers/99999/approve
-Authorization: Bearer {ADMIN_TOKEN}
+### ---------- 2.19 Reject Refund Request ----------
+PUT {{baseUrl}}/api/admin/refunds/2/reject
+Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
-  "adminNotes": "Test"
+  "adminNotes": "Service already completed. Refund not applicable."
 }
 
-###
+### ---------- 2.20 Access Admin Endpoint as Customer (Expect 403) ----------
+GET {{baseUrl}}/api/admin/stats
+Authorization: Bearer {{customerToken}}
 
-### 2️⃣5️⃣ Create Duplicate Subscription Plan (Should fail - 409 Conflict)
-POST http://localhost:8081/api/admin/subscription-plans
-Authorization: Bearer {ADMIN_TOKEN}
+
+### ============================================================================
+### PHASE 3: SERVICE PROVIDER OPERATIONS
+### ============================================================================
+
+### ---------- 3.1 Login Provider After Approval ----------
+# @name login-provider-approved
+POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
-  "name": "Monthly Pro Plan",
-  "description": "Duplicate plan",
-  "price": 100.00,
-  "durationDays": 30
+  "email": "{{providerEmail}}",
+  "password": "{{providerPassword}}"
 }
 
-###
+### Update provider token after approval
+@providerToken = eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJwcm92aWRlcjJAZXhhbXBsZS5jb20iLCJpYXQiOjE3Njc1MTc5NTgsImV4cCI6MTc2NzYwNDM1OH0.OvZEVPeTiGuXfDcdyhDjm8rjoCanzbJpmQopg19yLjSZwhQG6hEKQtYpPRNlsihU
 
-### ═══════════════════════════════════════════════════════════════════════════════
-### PHASE 3: SERVICE PROVIDER FEATURES
-### ═══════════════════════════════════════════════════════════════════════════════
+### ---------- 3.2 Get Available Subscription Plans (Public) ----------
+GET {{baseUrl}}/api/subscriptions/plans
 
-### ========== Subscription Management ==========
-
-### 2️⃣6️⃣ Get All Available Subscription Plans (Public - only active plans)
-GET http://localhost:8081/api/subscriptions/plans
-
-###
-
-### 2️⃣7️⃣ Subscribe to Plan (Requires SERVICE_PROVIDER role + ACTIVE status)
-# Note: Provider must be approved by admin first (use request #12)
-POST http://localhost:8081/api/subscriptions/subscribe
-Authorization: Bearer {PROVIDER_TOKEN}
+### ---------- 3.3 Subscribe to Plan (Basic Plan) ----------
+# @name subscribe-basic
+POST {{baseUrl}}/api/subscriptions/subscribe
+Authorization: Bearer {{providerToken}}
 Content-Type: application/json
 
 {
   "planId": 1,
-  "paymentMethod": "Credit Card",
-  "autoRenew": true,
+  "paymentMethod": "card",
   "paymentCard": {
-    "cardNumber": "5425233430109903",
-    "cardHolderName": "ALI AHMAD",
-    "expiryMonth": 6,
-    "expiryYear": 2027,
-    "cvv": "456",
-    "billingAddress": "456 Commerce Ave, Nablus, Palestine"
+    "cardNumber": "4242424242424242",
+    "expiryMonth": 12,
+    "expiryYear": 2026,
+    "cvv": "123",
+    "cardHolderName": "Jane Smith",
+    "billingAddress": "123 Main Street, San Francisco, CA 94102"
   }
 }
 
-###
 
-### 2️⃣8️⃣ Get Current Subscription
-GET http://localhost:8081/api/subscriptions/my-subscription
-Authorization: Bearer {PROVIDER_TOKEN}
+### ---------- 3.4 Get My Subscription ----------
+GET {{baseUrl}}/api/subscriptions/my-subscription
+Authorization: Bearer {{providerToken}}
 
-###
+### ---------- 3.5 Cancel Auto-Renewal ----------
+PUT {{baseUrl}}/api/subscriptions/cancel-renewal
+Authorization: Bearer {{providerToken}}
 
-### 2️⃣9️⃣ Cancel Auto-Renewal
-PUT http://localhost:8081/api/subscriptions/cancel-renewal
-Authorization: Bearer {PROVIDER_TOKEN}
-
-###
-
-### ========== Service Management ==========
-
-### 3️⃣0️⃣ Create New Service (Requires active subscription)
-POST http://localhost:8081/api/provider/services
-Authorization: Bearer {PROVIDER_TOKEN}
+### ---------- 3.6 Create Service: Java Course ----------
+# @name create-service-java
+POST {{baseUrl}}/api/provider/services
+Authorization: Bearer {{providerToken}}
 Content-Type: application/json
 
 {
   "categoryId": 1,
-  "title": "Java Programming Masterclass",
-  "description": "Complete Java course from beginner to advanced level covering OOP, Collections, Spring Boot, and Microservices architecture",
-  "price": 50.00,
+  "title": "Advanced Java Programming",
+  "description": "Master Java 17+ features including records, sealed classes, pattern matching, and more",
+  "price": 79.99,
   "durationMinutes": 60,
   "serviceType": "BOTH",
-  "locationAddress": "123 Tech Street, Ramallah, Palestine"
+  "locationAddress": "123 Tech Street, Silicon Valley, CA"
 }
 
-###
-
-### 3️⃣1️⃣ Create Another Service (Online Only)
-POST http://localhost:8081/api/provider/services
-Authorization: Bearer {PROVIDER_TOKEN}
+### ---------- 3.7 Create Service: Spring Boot ----------
+POST {{baseUrl}}/api/provider/services
+Authorization: Bearer {{providerToken}}
 Content-Type: application/json
 
 {
   "categoryId": 1,
   "title": "Spring Boot Microservices",
-  "description": "Advanced Spring Boot microservices course with Docker, Kubernetes, and Cloud deployment",
-  "price": 75.00,
+  "description": "Build production-ready microservices with Spring Boot, Docker, and Kubernetes",
+  "price": 99.99,
   "durationMinutes": 90,
+  "serviceType": "ONLINE",
+  "locationAddress": null
+}
+
+### ---------- 3.8 Create Service: React Development ----------
+POST {{baseUrl}}/api/provider/services
+Authorization: Bearer {{providerToken}}
+Content-Type: application/json
+
+{
+  "categoryId": 1,
+  "title": "React & Next.js Development",
+  "description": "Build modern web applications with React 18 and Next.js 14",
+  "price": 59.99,
+  "durationMinutes": 60,
   "serviceType": "ONLINE"
 }
 
-###
+### ---------- 3.9 Get My Services ----------
+GET {{baseUrl}}/api/provider/services
+Authorization: Bearer {{providerToken}}
 
-### 3️⃣2️⃣ Get Provider's Services
-GET http://localhost:8081/api/provider/services
-Authorization: Bearer {PROVIDER_TOKEN}
-
-###
-
-### 3️⃣3️⃣ Update Service
-PUT http://localhost:8081/api/provider/services/1
-Authorization: Bearer {PROVIDER_TOKEN}
+### ---------- 3.10 Update Service ----------
+PUT {{baseUrl}}/api/provider/services/1
+Authorization: Bearer {{providerToken}}
 Content-Type: application/json
 
 {
-  "title": "Advanced Java Programming Masterclass",
-  "price": 65.00,
-  "description": "Updated course with more advanced topics and hands-on projects"
+  "price": 99.99,
+  "description": "Master Java 21 features including virtual threads, record patterns, and more (UPDATED CONTENT!)"
 }
 
-###
+### ---------- 3.11 Delete Service ----------
+DELETE {{baseUrl}}/api/provider/services/4
+Authorization: Bearer {{providerToken}}
 
-### 3️⃣4️⃣ Deactivate Service
-PUT http://localhost:8081/api/provider/services/1
-Authorization: Bearer {PROVIDER_TOKEN}
-Content-Type: application/json
-
-{
-  "isActive": false
-}
-
-###
-
-### 3️⃣5️⃣ Delete Service
-DELETE http://localhost:8081/api/provider/services/2
-Authorization: Bearer {PROVIDER_TOKEN}
-
-###
-
-### ========== Availability Management ==========
-
-### 3️⃣6️⃣ Set Provider Availability - Monday
-POST http://localhost:8081/api/provider/availability
-Authorization: Bearer {PROVIDER_TOKEN}
+### ---------- 3.12 Set Availability: Monday ----------
+# @name set-availability-monday
+POST {{baseUrl}}/api/provider/availability
+Authorization: Bearer {{providerToken}}
 Content-Type: application/json
 
 {
@@ -434,558 +407,217 @@ Content-Type: application/json
   "endTime": "17:00:00"
 }
 
-###
-
-### 3️⃣7️⃣ Set Provider Availability - Tuesday
-POST http://localhost:8081/api/provider/availability
-Authorization: Bearer {PROVIDER_TOKEN}
-Content-Type: application/json
-
-{
-  "dayOfWeek": "TUESDAY",
-  "startTime": "10:00:00",
-  "endTime": "18:00:00"
-}
-
-###
-
-### 3️⃣8️⃣ Set Provider Availability - Wednesday
-POST http://localhost:8081/api/provider/availability
-Authorization: Bearer {PROVIDER_TOKEN}
+### ---------- 3.13 Set Availability: Wednesday ----------
+POST {{baseUrl}}/api/provider/availability
+Authorization: Bearer {{providerToken}}
 Content-Type: application/json
 
 {
   "dayOfWeek": "WEDNESDAY",
+  "startTime": "10:00:00",
+  "endTime": "18:00:00"
+}
+
+### ---------- 3.14 Set Availability: Friday ----------
+POST {{baseUrl}}/api/provider/availability
+Authorization: Bearer {{providerToken}}
+Content-Type: application/json
+
+{
+  "dayOfWeek": "FRIDAY",
   "startTime": "09:00:00",
-  "endTime": "17:00:00"
+  "endTime": "15:00:00"
 }
 
-###
+### ---------- 3.15 Get My Availability ----------
+GET {{baseUrl}}/api/provider/availability
+Authorization: Bearer {{providerToken}}
 
-### 3️⃣9️⃣ Get Provider's Availability
-GET http://localhost:8081/api/provider/availability
-Authorization: Bearer {PROVIDER_TOKEN}
-
-###
-
-### 4️⃣0️⃣ Delete Availability
-DELETE http://localhost:8081/api/provider/availability/1
-Authorization: Bearer {PROVIDER_TOKEN}
-
-###
-
-### ========== Provider Error Testing ==========
-
-### 4️⃣1️⃣ Try to Subscribe without Admin Approval (Should fail - 403 Forbidden)
-# Note: Use token from newly registered provider who hasn't been approved yet
-POST http://localhost:8081/api/subscriptions/subscribe
-Authorization: Bearer {UNAPPROVED_PROVIDER_TOKEN}
-Content-Type: application/json
-
-{
-  "planId": 1,
-  "paymentMethod": "STRIPE"
-}
-
-###
-
-### 4️⃣2️⃣ Try to Create Service without Subscription (Should fail - 403 Forbidden)
-# Note: Use token from approved provider who hasn't subscribed yet
-POST http://localhost:8081/api/provider/services
-Authorization: Bearer {PROVIDER_TOKEN_WITHOUT_SUBSCRIPTION}
-Content-Type: application/json
-
-{
-  "categoryId": 1,
-  "title": "Test Service",
-  "description": "This should fail",
-  "price": 25.00,
-  "durationMinutes": 30,
-  "serviceType": "ONLINE"
-}
-
-###
-
-### 4️⃣3️⃣ Set Overlapping Availability (Should fail - 400 Bad Request)
-# Note: First create Monday 09:00-17:00, then try to create overlapping time
-POST http://localhost:8081/api/provider/availability
-Authorization: Bearer {PROVIDER_TOKEN}
+### ---------- 3.16 Set Overlapping Availability (Expect 400) ----------
+POST {{baseUrl}}/api/provider/availability
+Authorization: Bearer {{providerToken}}
 Content-Type: application/json
 
 {
   "dayOfWeek": "MONDAY",
-  "startTime": "08:00:00",
-  "endTime": "10:00:00"
+  "startTime": "14:00:00",
+  "endTime": "20:00:00"
 }
 
-###
+### ---------- 3.17 Delete Availability ----------
+DELETE {{baseUrl}}/api/provider/availability/1
+Authorization: Bearer {{providerToken}}
 
-### 4️⃣4️⃣ Create Service with IN_PERSON type without Location (Should fail - 400 Bad Request)
-POST http://localhost:8081/api/provider/services
-Authorization: Bearer {PROVIDER_TOKEN}
-Content-Type: application/json
+### ---------- 3.18 Get My Bookings ----------
+GET {{baseUrl}}/api/provider/bookings
+Authorization: Bearer {{providerToken}}
 
-{
-  "categoryId": 1,
-  "title": "In-Person Consultation",
-  "description": "Face-to-face consultation",
-  "price": 100.00,
-  "durationMinutes": 60,
-  "serviceType": "IN_PERSON"
-}
+### ---------- 3.19 Mark Booking as Completed ----------
+PUT {{baseUrl}}/api/provider/bookings/1/complete
+Authorization: Bearer {{providerToken}}
 
-###
+### ---------- 3.20 Get My Reviews ----------
+GET {{baseUrl}}/api/provider/reviews
+Authorization: Bearer {{providerToken}}
 
-### 4️⃣5️⃣ Customer Tries to Access Provider Endpoints (Should fail - 403)
-GET http://localhost:8081/api/provider/services
-Authorization: Bearer {CUSTOMER_TOKEN}
+### ---------- 3.21 Get Provider Statistics ----------
+GET {{baseUrl}}/api/provider/stats
+Authorization: Bearer {{providerToken}}
 
-###
 
-### 4️⃣6️⃣ Subscribe to Non-Existent Plan (Should fail - 404 Not Found)
-POST http://localhost:8081/api/subscriptions/subscribe
-Authorization: Bearer {PROVIDER_TOKEN}
-Content-Type: application/json
+### ============================================================================
+### PHASE 4: CUSTOMER & PUBLIC OPERATIONS
+### ============================================================================
 
-{
-  "planId": 999
-}
+### ---------- 4.1 Get All Categories (Public) ----------
+GET {{baseUrl}}/api/categories
 
-###
+### ---------- 4.2 Get Category by ID ----------
+GET {{baseUrl}}/api/categories/1
 
-### ═══════════════════════════════════════════════════════════════════════════════
-### PHASE 4: CUSTOMER FEATURES
-### ═══════════════════════════════════════════════════════════════════════════════
+### ---------- 4.3 Get All Active Services ----------
+GET {{baseUrl}}/api/services
 
-### ========== Booking Management ==========
+### ---------- 4.4 Search Services by Title ----------
+GET {{baseUrl}}/api/services?search=Java
 
-### 5️⃣1️⃣ Get Available Time Slots for a Service
-# Replace {SERVICE_ID} with actual service ID from provider
-GET http://localhost:8081/api/services/{SERVICE_ID}/slots
-Authorization: Bearer {CUSTOMER_TOKEN}
+### ---------- 4.5 Filter Services by Category ID ----------
+GET {{baseUrl}}/api/services?categoryId=1
 
-###
+### ---------- 4.7 Filter Services by Price Range ----------
+GET {{baseUrl}}/api/services?minPrice=50&maxPrice=100
 
-### 5️⃣2️⃣ Create Booking (BOOKING_PAYMENT Transaction)
-POST http://localhost:8081/api/customer/bookings
-Authorization: Bearer {CUSTOMER_TOKEN}
+### ---------- 4.8 Filter by Category and Price Range ----------
+GET {{baseUrl}}/api/services?categoryId=1&minPrice=10&maxPrice=20
+
+### ---------- 4.9 Sort Services by Price (Low to High) ----------
+GET {{baseUrl}}/api/services?categoryId=1&sortBy=price_low
+
+### ---------- 4.10 Sort Services by Price (High to Low) ----------
+GET {{baseUrl}}/api/services?categoryId=1&sortBy=price_high
+
+### ---------- 4.11 Get Newest Services ----------
+GET {{baseUrl}}/api/services?sortBy=newest
+
+### ---------- 4.12 Get Service by ID ----------
+GET {{baseUrl}}/api/services/1
+
+### ---------- 4.13 Get Services by Category ----------
+GET {{baseUrl}}/api/services/category/1
+
+### ---------- 4.14 Get Available Time Slots ----------
+GET {{baseUrl}}/api/customer/services/1/slots
+Authorization: Bearer {{customerToken}}
+
+### ---------- 4.15 Create Booking ----------
+# @name create-booking
+POST {{baseUrl}}/api/customer/bookings
+Authorization: Bearer {{customerToken}}
 Content-Type: application/json
 
 {
   "serviceId": 1,
   "slotId": 1,
-  "paymentMethod": "Credit Card",
+  "paymentMethod": "card",
   "paymentCard": {
-    "cardNumber": "4532015112830366",
-    "cardHolderName": "HAMZA SHAER",
+    "cardNumber": "4242424242424242",
     "expiryMonth": 12,
-    "expiryYear": 2028,
+    "expiryYear": 2026,
     "cvv": "123",
-    "billingAddress": "123 Main Street, Ramallah, Palestine"
+    "cardHolderName": "John Doe",
+    "billingAddress": "456 Oak Avenue, New York, NY 10001"
   }
 }
 
-###
+### ---------- 4.16 Get My Bookings ----------
+GET {{baseUrl}}/api/customer/bookings
+Authorization: Bearer {{customerToken}}
 
-### 5️⃣3️⃣ Get All My Bookings
-GET http://localhost:8081/api/customer/bookings
-Authorization: Bearer {CUSTOMER_TOKEN}
-
-###
-
-### 5️⃣4️⃣ Get Booking by ID
-GET http://localhost:8081/api/customer/bookings/{BOOKING_ID}
-Authorization: Bearer {CUSTOMER_TOKEN}
-
-###
-
-### 5️⃣5️⃣ Cancel Booking (Auto-Refund if < 24hrs, Pending Refund if > 24hrs)
-PUT http://localhost:8081/api/customer/bookings/{BOOKING_ID}/cancel
-Authorization: Bearer {CUSTOMER_TOKEN}
+### ---------- 4.17 Cancel Booking ----------
+PUT {{baseUrl}}/api/customer/bookings/1/cancel
+Authorization: Bearer {{customerToken}}
 Content-Type: application/json
 
 {
-  "cancellationReason": "Schedule conflict, need to reschedule"
+  "cancellationReason": "Schedule conflict"
 }
 
-###
-
-### ========== Review Management ==========
-
-### 5️⃣6️⃣ Submit Review (Only for COMPLETED bookings)
-POST http://localhost:8081/api/customer/reviews
-Authorization: Bearer {CUSTOMER_TOKEN}
+### ---------- 4.18 Submit Review (After Booking Completed) ----------
+POST {{baseUrl}}/api/customer/reviews
+Authorization: Bearer {{customerToken}}
 Content-Type: application/json
 
 {
   "bookingId": 1,
   "rating": 5,
-  "comment": "Excellent service! Very professional and knowledgeable."
+  "comment": "Excellent service! Very knowledgeable instructor. Highly recommended!"
 }
 
-###
+### ---------- 4.19 Get My Transactions ----------
+GET {{baseUrl}}/api/customer/transactions
+Authorization: Bearer {{customerToken}}
 
-### 5️⃣7️⃣ Try to Review PENDING Booking (Should fail - 400 Bad Request)
-POST http://localhost:8081/api/customer/reviews
-Authorization: Bearer {CUSTOMER_TOKEN}
+### ---------- 4.20 Request Refund ----------
+POST {{baseUrl}}/api/customer/refunds
+Authorization: Bearer {{customerToken}}
 Content-Type: application/json
 
 {
   "bookingId": 2,
-  "rating": 4,
-  "comment": "Great session!"
+  "refundReason": "Service did not meet expectations"
 }
 
-###
+### ---------- 4.21 Get My Notifications ----------
+GET {{baseUrl}}/api/notifications
+Authorization: Bearer {{customerToken}}
 
-### 5️⃣8️⃣ Try to Review Same Booking Twice (Should fail - 400 Bad Request)
-POST http://localhost:8081/api/customer/reviews
-Authorization: Bearer {CUSTOMER_TOKEN}
-Content-Type: application/json
+### ---------- 4.22 Mark Notification as Read ----------
+PUT {{baseUrl}}/api/notifications/1/read
+Authorization: Bearer {{customerToken}}
 
-{
-  "bookingId": 1,
-  "rating": 5,
-  "comment": "Trying to review again"
-}
-
-###
-
-### ========== Transaction History ==========
-
-### 5️⃣9️⃣ Get My Transactions (BOOKING_PAYMENT, REFUND)
-GET http://localhost:8081/api/customer/transactions
-Authorization: Bearer {CUSTOMER_TOKEN}
-
-###
-
-### ========== Provider: Booking & Review Management ==========
-
-### 6️⃣1️⃣ Provider: View All Bookings
-GET http://localhost:8081/api/provider/bookings
-Authorization: Bearer {PROVIDER_TOKEN}
-
-###
-
-### 6️⃣2️⃣ Provider: Complete Booking (Creates PAYOUT Transaction)
-PUT http://localhost:8081/api/provider/bookings/{BOOKING_ID}/complete
-Authorization: Bearer {PROVIDER_TOKEN}
-
-###
-
-### 6️⃣3️⃣ Provider: Try to Complete Already Completed Booking (Should fail - 400)
-PUT http://localhost:8081/api/provider/bookings/{BOOKING_ID}/complete
-Authorization: Bearer {PROVIDER_TOKEN}
-
-###
-
-### 6️⃣4️⃣ Provider: View All Reviews
-GET http://localhost:8081/api/provider/reviews
-Authorization: Bearer {PROVIDER_TOKEN}
-
-###
-
-### 6️⃣5️⃣ Provider: Get Transaction History (SUBSCRIPTION_PAYMENT, PAYOUT)
-GET http://localhost:8081/api/customer/transactions
-Authorization: Bearer {PROVIDER_TOKEN}
-
-###
-
-### ========== Admin: Refund Management ==========
-
-### 7️⃣1️⃣ Admin: View All Pending Refunds
-GET http://localhost:8081/api/admin/refunds/pending
-Authorization: Bearer {ADMIN_TOKEN}
-
-###
-
-### 7️⃣2️⃣ Admin: Approve Refund (Creates REFUND Transaction)
-PUT http://localhost:8081/api/admin/refunds/{REFUND_ID}/approve
-Authorization: Bearer {ADMIN_TOKEN}
-Content-Type: application/json
-
-{
-  "adminNotes": "Valid cancellation reason. Approved 50% refund."
-}
-
-###
-
-### 7️⃣3️⃣ Admin: Reject Refund
-PUT http://localhost:8081/api/admin/refunds/{REFUND_ID}/reject
-Authorization: Bearer {ADMIN_TOKEN}
-Content-Type: application/json
-
-{
-  "adminNotes": "Cancellation too late. Policy violated."
-}
-
-###
-
-### ========== Admin: Transaction Management ==========
-
-### 7️⃣4️⃣ Admin: View All Transactions (All Types)
-GET http://localhost:8081/api/admin/transactions
-Authorization: Bearer {ADMIN_TOKEN}
-
-###
-
-### 7️⃣5️⃣ Admin: View Platform Stats (Updated with Booking & Transaction Data)
-GET http://localhost:8081/api/admin/stats
-Authorization: Bearer {ADMIN_TOKEN}
-
-###
-
-### ═══════════════════════════════════════════════════════════════════════════════
-### 🧪 ERROR & VALIDATION TESTS - PHASE 4
-### ═══════════════════════════════════════════════════════════════════════════════
-
-### 8️⃣1️⃣ Book Already Booked Time Slot (Should fail - 400 Bad Request)
-POST http://localhost:8081/api/customer/bookings
-Authorization: Bearer {CUSTOMER_TOKEN}
+### ---------- 4.23 Book Already Booked Slot (Expect 409) ----------
+POST {{baseUrl}}/api/customer/bookings
+Authorization: Bearer {{customerToken}}
 Content-Type: application/json
 
 {
   "serviceId": 1,
   "slotId": 1,
-  "paymentMethod": "MasterCard ****5678"
+  "paymentMethod": "card",
+  "paymentCard": {
+    "cardNumber": "4242424242424242",
+    "expiryMonth": 12,
+    "expiryYear": 2026,
+    "cvv": "123",
+    "cardHolderName": "John Doe",
+    "billingAddress": "456 Oak Avenue, New York, NY 10001"
+  }
 }
 
-###
-
-### 8️⃣2️⃣ Book Time Slot in the Past (Should fail - 400 Bad Request)
-POST http://localhost:8081/api/customer/bookings
-Authorization: Bearer {CUSTOMER_TOKEN}
-Content-Type: application/json
-
-{
-  "serviceId": 1,
-  "slotId": 99,
-  "paymentMethod": "Visa ****1234"
-}
-
-###
-
-### 8️⃣3️⃣ Cancel Already Cancelled Booking (Should fail - 400 Bad Request)
-PUT http://localhost:8081/api/customer/bookings/{CANCELLED_BOOKING_ID}/cancel
-Authorization: Bearer {CUSTOMER_TOKEN}
-Content-Type: application/json
-
-{
-  "cancellationReason": "Changed my mind again"
-}
-
-###
-
-### 8️⃣4️⃣ Provider Tries to Complete Cancelled Booking (Should fail - 400)
-PUT http://localhost:8081/api/provider/bookings/{CANCELLED_BOOKING_ID}/complete
-Authorization: Bearer {PROVIDER_TOKEN}
-
-###
-
-### 8️⃣5️⃣ Submit Review with Invalid Rating (Should fail - 400)
-POST http://localhost:8081/api/customer/reviews
-Authorization: Bearer {CUSTOMER_TOKEN}
+### ---------- 4.24 Submit Duplicate Review (Expect 409) ----------
+POST {{baseUrl}}/api/customer/reviews
+Authorization: Bearer {{customerToken}}
 Content-Type: application/json
 
 {
   "bookingId": 1,
-  "rating": 6,
-  "comment": "Invalid rating test"
+  "rating": 4,
+  "comment": "Trying to submit again"
 }
 
-###
-
-### 8️⃣6️⃣ Customer Tries to Access Other Customer's Booking (Should fail - 404)
-GET http://localhost:8081/api/customer/bookings/{OTHER_CUSTOMER_BOOKING_ID}
-Authorization: Bearer {CUSTOMER_TOKEN}
-
-###
-
-### 8️⃣7️⃣ Admin Approves Already Approved Refund (Should fail - 400)
-PUT http://localhost:8081/api/admin/refunds/{APPROVED_REFUND_ID}/approve
-Authorization: Bearer {ADMIN_TOKEN}
+### ---------- 4.25 Review Non-Completed Booking (Expect 400) ----------
+POST {{baseUrl}}/api/customer/reviews
+Authorization: Bearer {{customerToken}}
 Content-Type: application/json
 
 {
-  "adminNotes": "Trying to approve again"
+  "bookingId": 3,
+  "rating": 5,
+  "comment": "Premature review"
 }
 
-###
 
-### ═══════════════════════════════════════════════════════════════════════════════
-### NOTIFICATIONS TESTING
-### ═══════════════════════════════════════════════════════════════════════════════
+### ============================================================================
+### END OF API TESTING FILE
+### ============================================================================
 
-### 8️⃣8️⃣ Get All Notifications (Customer)
-GET http://localhost:8081/api/notifications
-Authorization: Bearer {CUSTOMER_TOKEN}
-
-###
-
-### 8️⃣9️⃣ Get All Notifications (Provider)
-GET http://localhost:8081/api/notifications
-Authorization: Bearer {PROVIDER_TOKEN}
-
-###
-
-### 9️⃣0️⃣ Get Unread Notifications Only
-GET http://localhost:8081/api/notifications/unread
-Authorization: Bearer {CUSTOMER_TOKEN}
-
-###
-
-### 9️⃣1️⃣ Get Unread Notifications Count
-GET http://localhost:8081/api/notifications/unread/count
-Authorization: Bearer {PROVIDER_TOKEN}
-
-###
-
-### 9️⃣2️⃣ Mark Notification as Read
-PUT http://localhost:8081/api/notifications/{NOTIFICATION_ID}/read
-Authorization: Bearer {CUSTOMER_TOKEN}
-
-###
-
-### 9️⃣3️⃣ Mark All Notifications as Read
-PUT http://localhost:8081/api/notifications/read-all
-Authorization: Bearer {PROVIDER_TOKEN}
-
-###
-
-### 9️⃣4️⃣ Delete Notification
-DELETE http://localhost:8081/api/notifications/{NOTIFICATION_ID}
-Authorization: Bearer {CUSTOMER_TOKEN}
-
-###
-
-### ═══════════════════════════════════════════════════════════════════════════════
-### PAYMENT VALIDATION TESTING
-### ═══════════════════════════════════════════════════════════════════════════════
-
-### 9️⃣5️⃣ Test Invalid Card Number (Fails Luhn Check - Should fail - 400)
-POST http://localhost:8081/api/customer/bookings
-Authorization: Bearer {CUSTOMER_TOKEN}
-Content-Type: application/json
-
-{
-  "serviceId": 1,
-  "slotId": 2,
-  "paymentMethod": "Credit Card",
-  "paymentCard": {
-    "cardNumber": "1234567890123456",
-    "cardHolderName": "TEST USER",
-    "expiryMonth": 12,
-    "expiryYear": 2028,
-    "cvv": "123",
-    "billingAddress": "123 Test Street, Test City"
-  }
-}
-
-###
-
-### 9️⃣6️⃣ Test Blocked Card (All Zeros - Should fail - 400)
-POST http://localhost:8081/api/customer/bookings
-Authorization: Bearer {CUSTOMER_TOKEN}
-Content-Type: application/json
-
-{
-  "serviceId": 1,
-  "slotId": 3,
-  "paymentMethod": "Credit Card",
-  "paymentCard": {
-    "cardNumber": "0000000000000000",
-    "cardHolderName": "BLOCKED USER",
-    "expiryMonth": 12,
-    "expiryYear": 2028,
-    "cvv": "000",
-    "billingAddress": "Blocked Address"
-  }
-}
-
-###
-
-### 9️⃣7️⃣ Test Expired Card (Should fail - 400)
-POST http://localhost:8081/api/subscriptions/subscribe
-Authorization: Bearer {PROVIDER_TOKEN}
-Content-Type: application/json
-
-{
-  "planId": 1,
-  "paymentMethod": "Credit Card",
-  "autoRenew": true,
-  "paymentCard": {
-    "cardNumber": "4532015112830366",
-    "cardHolderName": "EXPIRED CARD",
-    "expiryMonth": 12,
-    "expiryYear": 2020,
-    "cvv": "123",
-    "billingAddress": "Test Address"
-  }
-}
-
-###
-
-### 9️⃣8️⃣ Test Invalid CVV (Should fail - 400)
-POST http://localhost:8081/api/customer/bookings
-Authorization: Bearer {CUSTOMER_TOKEN}
-Content-Type: application/json
-
-{
-  "serviceId": 1,
-  "slotId": 4,
-  "paymentMethod": "Credit Card",
-  "paymentCard": {
-    "cardNumber": "4532015112830366",
-    "cardHolderName": "TEST USER",
-    "expiryMonth": 12,
-    "expiryYear": 2028,
-    "cvv": "12",
-    "billingAddress": "Test Address"
-  }
-}
-
-###
-
-### 9️⃣9️⃣ Test Missing Payment Card (Should fail - 400)
-POST http://localhost:8081/api/customer/bookings
-Authorization: Bearer {CUSTOMER_TOKEN}
-Content-Type: application/json
-
-{
-  "serviceId": 1,
-  "slotId": 5,
-  "paymentMethod": "Credit Card"
-}
-
-###
-
-### 1️⃣0️⃣0️⃣ Test Valid Alternative Card (MasterCard - Should succeed)
-POST http://localhost:8081/api/subscriptions/subscribe
-Authorization: Bearer {PROVIDER_TOKEN}
-Content-Type: application/json
-
-{
-  "planId": 1,
-  "paymentMethod": "Debit Card",
-  "autoRenew": false,
-  "paymentCard": {
-    "cardNumber": "5425233430109903",
-    "cardHolderName": "JOHN DOE",
-    "expiryMonth": 3,
-    "expiryYear": 2029,
-    "cvv": "789",
-    "billingAddress": "789 Finance Road, Bethlehem, Palestine"
-  }
-}
-
-###
-
-### ═══════════════════════════════════════════════════════════════════════════════
-### 🎉 END OF API TESTING - ALL PHASES COMPLETE WITH PAYMENT VALIDATION
-### ═══════════════════════════════════════════════════════════════════════════════
-###
-### 📝 Note: See TEST-PAYMENT-CARDS.md for valid test card numbers
-### 🔒 All payment data is validated using Luhn Algorithm
-### ✅ Card numbers are masked in database (****xxxx format)
-### 💳 Transaction IDs are generated for tracking
-### ═══════════════════════════════════════════════════════════════════════════════

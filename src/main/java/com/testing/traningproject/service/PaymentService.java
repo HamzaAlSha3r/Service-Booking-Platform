@@ -146,9 +146,7 @@ public class PaymentService {
      * Process refund (MOCK)
      */
     public String processRefund(String originalTransactionId, java.math.BigDecimal amount) {
-        log.info("Processing refund - Original TXN: {}, Amount: ${}", originalTransactionId, amount);
-
-        // Generate mock refund transaction ID
+        // Generate mock refund transaction ID ( will update when make connection with orignal gate pay as stripe)
         String refundId = "REFUND_" + System.currentTimeMillis();
 
         log.info("Refund processed successfully - Refund ID: {}", refundId);

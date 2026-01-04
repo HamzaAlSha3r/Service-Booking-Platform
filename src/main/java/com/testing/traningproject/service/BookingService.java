@@ -42,13 +42,11 @@ public class BookingService {
      */
     @Transactional
     public BookingResponse createBooking(Long customerId, CreateBookingRequest request) {
-        log.info("Creating booking for customer ID: {} for service ID: {}", customerId, request.getServiceId());
-
-        // 1. Validate customer exists
+        // Validate customer exists
         User customer = userRepository.findById(customerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
-        // 2. Validate service exists and is active
+        // Validate service exists and is active
         com.testing.traningproject.model.entity.Service service = serviceRepository.findById(request.getServiceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Service not found"));
 
@@ -56,7 +54,7 @@ public class BookingService {
             throw new BadRequestException("Service is not active");
         }
 
-        // 3. Validate time slot exists and is available
+        // Validate time slot exists and is available
         TimeSlot timeSlot = timeSlotRepository.findById(request.getSlotId())
                 .orElseThrow(() -> new ResourceNotFoundException("Time slot not found"));
 
@@ -68,7 +66,7 @@ public class BookingService {
             throw new BadRequestException("Time slot does not belong to this service");
         }
 
-        // 4. Check if slot date is in the future
+        // Check if slot date is in the future
         if (timeSlot.getSlotDate().isBefore(java.time.LocalDate.now())) {
             throw new BadRequestException("Cannot book a slot in the past");
         }
@@ -88,7 +86,7 @@ public class BookingService {
         booking = bookingRepository.save(booking);
         log.info("Booking created with ID: {} - Status: PENDING", booking.getId());
 
-        // 6. Process BOOKING_PAYMENT transaction via Payment Service
+        // Process BOOKING_PAYMENT transaction via Payment Service
         String paymentTransactionId;
         try {
             // Validate and process payment using PaymentService
@@ -123,13 +121,13 @@ public class BookingService {
         transactionRepository.save(transaction);
         log.info("BOOKING_PAYMENT transaction created with ID: {} - Amount: {}", transaction.getId(), transaction.getAmount());
 
-        // 7. Update booking status to CONFIRMED (after successful payment)
+        // Update booking status to CONFIRMED (after successful payment)
         booking.setStatus(BookingStatus.CONFIRMED);
         booking.setUpdatedAt(LocalDateTime.now());
         bookingRepository.save(booking);
         log.info("Booking ID: {} updated to CONFIRMED after successful payment", booking.getId());
 
-        // 8. Update time slot status to BOOKED
+        // Update time slot status to BOOKED
         timeSlot.setStatus(TimeSlotStatus.BOOKED);
         timeSlot.setUpdatedAt(LocalDateTime.now());
         timeSlotRepository.save(timeSlot);
@@ -189,23 +187,21 @@ public class BookingService {
      */
     @Transactional
     public BookingResponse cancelBooking(Long customerId, Long bookingId, CancelBookingRequest request) {
-        log.info("Cancelling booking ID: {} for customer ID: {}", bookingId, customerId);
-
-        // 1. Validate booking exists and belongs to customer
+        // Validate booking exists and belongs to customer
         Booking booking = bookingRepository.findByIdAndCustomerId(bookingId, customerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found or access denied"));
 
-        // 2. Check if booking can be cancelled (only PENDING or CONFIRMED)
+        //  Check if booking can be cancelled (only PENDING or CONFIRMED)
         if (!booking.getStatus().equals(BookingStatus.PENDING) && !booking.getStatus().equals(BookingStatus.CONFIRMED)) {
             throw new BadRequestException("Booking cannot be cancelled. Current status: " + booking.getStatus());
         }
 
-        // 3. Calculate time until booking
+        // Calculate time until booking
         LocalDateTime slotDateTime = LocalDateTime.of(booking.getSlot().getSlotDate(), booking.getSlot().getStartTime());
         Duration timeUntilBooking = Duration.between(LocalDateTime.now(), slotDateTime);
         long hoursUntilBooking = timeUntilBooking.toHours();
 
-        // 4. Update booking status
+        // 4Update booking status
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancellationReason(request.getCancellationReason());
         booking.setCancelledAt(LocalDateTime.now());
@@ -213,14 +209,14 @@ public class BookingService {
         bookingRepository.save(booking);
         log.info("Booking ID: {} cancelled. Hours until booking: {}", bookingId, hoursUntilBooking);
 
-        // 5. Free up the time slot
+        // Free up the time slot
         TimeSlot timeSlot = booking.getSlot();
         timeSlot.setStatus(TimeSlotStatus.AVAILABLE);
         timeSlot.setUpdatedAt(LocalDateTime.now());
         timeSlotRepository.save(timeSlot);
         log.info("Time slot ID: {} freed up and marked as AVAILABLE", timeSlot.getId());
 
-        // 6. Determine refund amount and status
+        // Determine refund amount and status
         BigDecimal refundAmount;
         RefundStatus refundStatus;
 
@@ -352,24 +348,23 @@ public class BookingService {
     public BookingResponse completeBooking(Long providerId, Long bookingId) {
         log.info("Completing booking ID: {} for provider ID: {}", bookingId, providerId);
 
-        // 1. Validate booking exists and belongs to provider
+        // Validate booking exists and belongs to provider
         Booking booking = bookingRepository.findByIdAndProviderId(bookingId, providerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found or access denied"));
 
-        // 2. Check if booking is in CONFIRMED status
+        // Check if booking is in CONFIRMED status
         if (!booking.getStatus().equals(BookingStatus.CONFIRMED)) {
             throw new BadRequestException("Only CONFIRMED bookings can be marked as completed. Current status: " + booking.getStatus());
         }
 
-        // 3. Update booking status to COMPLETED
+        // Update booking status to COMPLETED
         booking.setStatus(BookingStatus.COMPLETED);
         booking.setCompletedAt(LocalDateTime.now());
         booking.setUpdatedAt(LocalDateTime.now());
         bookingRepository.save(booking);
         log.info("Booking ID: {} marked as COMPLETED", bookingId);
 
-        // 4. Create PAYOUT transaction for provider
-        // Note: In production, this would trigger actual bank transfer via Stripe Connect
+        // Create PAYOUT transaction for provider
         String payoutId = "PAYOUT_" + System.currentTimeMillis() + "_" + providerId;
 
         Transaction payout = Transaction.builder()

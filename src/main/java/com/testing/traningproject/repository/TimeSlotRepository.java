@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 /**
@@ -17,7 +18,21 @@ import java.util.List;
 @Repository
 public interface TimeSlotRepository extends JpaRepository<TimeSlot, Long> {
 
-    // Find available time slots for a service
+    // Find available time slots for a service (ordered by date and time)
+    List<TimeSlot> findByServiceIdAndStatusAndSlotDateGreaterThanEqualOrderBySlotDateAscStartTimeAsc(
+            Long serviceId,
+            TimeSlotStatus status,
+            LocalDate fromDate
+    );
+
+    // Check if slot already exists
+    boolean existsByServiceIdAndSlotDateAndStartTime(
+            Long serviceId,
+            LocalDate slotDate,
+            LocalTime startTime
+    );
+
+    // Find available time slots for a service (legacy query)
     @Query("SELECT ts FROM TimeSlot ts WHERE ts.service.id = :serviceId " +
            "AND ts.slotDate >= :fromDate " +
            "AND ts.status = 'AVAILABLE' " +

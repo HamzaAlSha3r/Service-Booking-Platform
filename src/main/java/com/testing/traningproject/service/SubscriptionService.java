@@ -93,7 +93,7 @@ public class SubscriptionService {
             throw new BadRequestException("This subscription plan is not available");
         }
 
-        // 6. Create subscription
+        // Create subscription
         LocalDate startDate = LocalDate.now();
         LocalDate endDate = startDate.plusDays(plan.getDurationDays());
 
@@ -103,7 +103,7 @@ public class SubscriptionService {
                 .startDate(startDate)
                 .endDate(endDate)
                 .status(SubscriptionStatus.ACTIVE)
-                .autoRenew(request.getAutoRenew())
+                .autoRenew(request.getAutoRenew() != null ? request.getAutoRenew() : true)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();

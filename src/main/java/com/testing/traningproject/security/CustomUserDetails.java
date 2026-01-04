@@ -15,31 +15,46 @@ import java.util.stream.Collectors;
  */
 public class CustomUserDetails implements UserDetails {
 
-    private final User user;
-
     @Getter
     private final Long id;
+    private final String email;
+    private final String password;
+    private final Collection<? extends GrantedAuthority> authorities;
+    private final User user; // Optional - can be null
 
+    // Constructor with User entity
     public CustomUserDetails(User user) {
         this.user = user;
         this.id = user.getId();
-    }
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return user.getRoles().stream()
+        this.email = user.getEmail();
+        this.password = user.getPasswordHash();
+        this.authorities = user.getRoles().stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName().name()))
                 .collect(Collectors.toList());
     }
 
+    // Constructor with minimal data (for JWT authentication)
+    public CustomUserDetails(Long id, String email, String password, Collection<? extends GrantedAuthority> authorities) {
+        this.id = id;
+        this.email = email;
+        this.password = password;
+        this.authorities = authorities;
+        this.user = null;
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return authorities;
+    }
+
     @Override
     public String getPassword() {
-        return user.getPasswordHash();
+        return password;
     }
 
     @Override
     public String getUsername() {
-        return user.getEmail();
+        return email;
     }
 
     @Override
@@ -49,7 +64,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return user.getAccountStatus() != com.testing.traningproject.model.enums.AccountStatus.SUSPENDED;
+        return user == null || user.getAccountStatus() != com.testing.traningproject.model.enums.AccountStatus.SUSPENDED;
     }
 
     @Override
@@ -59,7 +74,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return user.getAccountStatus() == com.testing.traningproject.model.enums.AccountStatus.ACTIVE;
+        return user == null || user.getAccountStatus() == com.testing.traningproject.model.enums.AccountStatus.ACTIVE;
     }
 
     public User getUser() {

@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Notification Service - إدارة الإشعارات
+ * Notification Service
  */
 @Service
 @RequiredArgsConstructor
@@ -25,9 +25,6 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
 
-    /**
-     * إنشاء إشعار جديد
-     */
     @Transactional
     public void createNotification(User user, NotificationType type, String title, String message) {
         Notification notification = Notification.builder()

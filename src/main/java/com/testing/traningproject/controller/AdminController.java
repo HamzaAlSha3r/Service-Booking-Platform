@@ -1,15 +1,18 @@
 package com.testing.traningproject.controller;
 
+import com.testing.traningproject.model.dto.request.CategoryRequest;
 import com.testing.traningproject.model.dto.request.CreateSubscriptionPlanRequest;
 import com.testing.traningproject.model.dto.request.ProviderApprovalRequest;
 import com.testing.traningproject.model.dto.request.RefundDecisionRequest;
 import com.testing.traningproject.model.dto.request.UpdateSubscriptionPlanRequest;
 import com.testing.traningproject.model.dto.response.AdminStatsResponse;
+import com.testing.traningproject.model.dto.response.CategoryResponse;
 import com.testing.traningproject.model.dto.response.PendingProviderResponse;
 import com.testing.traningproject.model.dto.response.PendingRefundResponse;
 import com.testing.traningproject.model.dto.response.SubscriptionPlanResponse;
 import com.testing.traningproject.model.dto.response.TransactionResponse;
 import com.testing.traningproject.service.AdminService;
+import com.testing.traningproject.service.CategoryService;
 import com.testing.traningproject.service.TransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +36,7 @@ public class AdminController {
 
     private final AdminService adminService;
     private final TransactionService transactionService;
+    private final CategoryService categoryService;
 
     /**
      * Get all pending service provider registrations
@@ -157,6 +161,49 @@ public class AdminController {
         log.info("Admin: Fetching all subscription plans");
         List<com.testing.traningproject.model.dto.response.SubscriptionPlanResponse> plans = adminService.getAllSubscriptionPlans();
         return ResponseEntity.ok(plans);
+    }
+
+    // ==================== Category Management ====================
+
+    /**
+     * Get all categories (includes inactive)
+     */
+    @GetMapping("/categories")
+    public ResponseEntity<List<CategoryResponse>> getAllCategories() {
+        log.info("Admin: Fetching all categories");
+        List<CategoryResponse> categories = categoryService.getAllCategories();
+        return ResponseEntity.ok(categories);
+    }
+
+    /**
+     * Create new category
+     */
+    @PostMapping("/categories")
+    public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CategoryRequest request) {
+        log.info("Admin: Creating new category: {}", request.getName());
+        CategoryResponse category = categoryService.createCategory(request);
+        return ResponseEntity.ok(category);
+    }
+
+    /**
+     * Update existing category
+     */
+    @PutMapping("/categories/{id}")
+    public ResponseEntity<CategoryResponse> updateCategory(@PathVariable Integer id,
+                                                            @Valid @RequestBody CategoryRequest request) {
+        log.info("Admin: Updating category ID: {}", id);
+        CategoryResponse category = categoryService.updateCategory(id, request);
+        return ResponseEntity.ok(category);
+    }
+
+    /**
+     * Delete category (only if no services)
+     */
+    @DeleteMapping("/categories/{id}")
+    public ResponseEntity<String> deleteCategory(@PathVariable Integer id) {
+        log.info("Admin: Deleting category ID: {}", id);
+        categoryService.deleteCategory(id);
+        return ResponseEntity.ok("Category deleted successfully");
     }
 
     // ==================== Transaction Management ====================

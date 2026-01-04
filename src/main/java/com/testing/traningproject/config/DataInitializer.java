@@ -45,7 +45,7 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
-        // Create roles
+        // Create roles same in enums
         for (RoleName roleName : RoleName.values()) {
             Role role = Role.builder()
                     .name(roleName)

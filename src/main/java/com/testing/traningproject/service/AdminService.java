@@ -12,6 +12,7 @@ import com.testing.traningproject.model.dto.response.PendingRefundResponse;
 import com.testing.traningproject.model.dto.response.SubscriptionPlanResponse;
 import com.testing.traningproject.model.entity.Refund;
 import com.testing.traningproject.model.entity.SubscriptionPlan;
+import com.testing.traningproject.model.entity.Transaction;
 import com.testing.traningproject.model.entity.User;
 import com.testing.traningproject.model.enums.AccountStatus;
 import com.testing.traningproject.model.enums.RefundStatus;
@@ -108,7 +109,6 @@ public class AdminService {
         provider.setUpdatedAt(LocalDateTime.now());
         userRepository.save(provider);
 
-        // Send notification to provider (ACCOUNT_REJECTED)
         String notificationMessage = "Your service provider registration has been rejected.";
         if (request != null && request.getAdminNotes() != null) {
             notificationMessage += "\n\nReason: " + request.getAdminNotes();
@@ -159,8 +159,7 @@ public class AdminService {
         log.info("Refund ID: {} approved by admin", refundId);
 
         // Get original payment transaction
-        com.testing.traningproject.model.entity.Transaction originalTransaction =
-            transactionRepository.findByBookingIdAndTransactionType(
+        Transaction originalTransaction = transactionRepository.findByBookingIdAndTransactionType(
                 refund.getBooking().getId(),
                 com.testing.traningproject.model.enums.TransactionType.BOOKING_PAYMENT
             );
@@ -178,7 +177,7 @@ public class AdminService {
         }
 
         // Create REFUND transaction
-        com.testing.traningproject.model.entity.Transaction refundTransaction = com.testing.traningproject.model.entity.Transaction.builder()
+        Transaction refundTransaction = Transaction.builder()
                 .user(refund.getBooking().getCustomer())
                 .booking(refund.getBooking())
                 .transactionType(com.testing.traningproject.model.enums.TransactionType.REFUND)

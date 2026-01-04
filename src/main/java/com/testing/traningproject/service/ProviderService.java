@@ -34,6 +34,7 @@ public class ProviderService {
     private final UserRepository userRepository;
     private final ProviderAvailabilityRepository providerAvailabilityRepository;
     private final SubscriptionService subscriptionService;
+    private final TimeSlotService timeSlotService;
 
     /**
      * Create a new service
@@ -50,7 +51,7 @@ public class ProviderService {
         }
 
         // Validate category
-        Category category = categoryRepository.findById(Long.valueOf(request.getCategoryId()))
+        Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
         if (!category.getIsActive()) {
@@ -101,7 +102,7 @@ public class ProviderService {
 
         // Update fields if provided
         if (request.getCategoryId() != null) {
-            Category category = categoryRepository.findById(Long.valueOf(request.getCategoryId()))
+            Category category = categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
             service.setCategory(category);
         }
@@ -215,6 +216,22 @@ public class ProviderService {
         availability = providerAvailabilityRepository.save(availability);
 
         log.info("Availability set successfully - ID: {}", availability.getId());
+
+        // Auto-generate time slots for all provider's active services
+        List<com.testing.traningproject.model.entity.Service> providerServices =
+                serviceRepository.findByProviderIdAndIsActiveTrue(providerId);
+
+        if (!providerServices.isEmpty()) {
+            log.info("Generating time slots for {} services", providerServices.size());
+            for (com.testing.traningproject.model.entity.Service service : providerServices) {
+                try {
+                    timeSlotService.generateTimeSlotsForService(service);
+                    log.info("Time slots generated for service ID: {}", service.getId());
+                } catch (Exception e) {
+                    log.error("Failed to generate time slots for service ID: {} - {}", service.getId(), e.getMessage());
+                }
+            }
+        }
 
         return convertToAvailabilityResponse(availability);
     }

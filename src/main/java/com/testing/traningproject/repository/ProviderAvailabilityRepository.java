@@ -19,5 +19,10 @@ public interface ProviderAvailabilityRepository extends JpaRepository<ProviderAv
      * Find availability by provider and specific day
      */
     List<ProviderAvailability> findByProviderIdAndDayOfWeek(Long providerId, DayOfWeek dayOfWeek);
+
+    /**
+     * Find active availability for a provider
+     */
+    List<ProviderAvailability> findByProviderIdAndIsActiveTrue(Long providerId);
 }
 
