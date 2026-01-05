@@ -17,6 +17,11 @@ import java.util.function.Function;
 
 /**
  * JWT Service - Handles JWT token generation, validation, and extraction
+ *
+ * Token Storage:
+ * - Access tokens (24h) are stored in HttpOnly cookies
+ * - Refresh tokens (7d) are stored in HttpOnly cookies
+ * - This prevents XSS attacks by making tokens inaccessible to JavaScript
  */
 @Component
 public class JwtService {

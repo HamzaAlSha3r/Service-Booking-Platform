@@ -1,11 +1,13 @@
 ###############################################################################
 # TRAINING PROJECT - API TESTING FILE
-# Complete REST API requests organized by phases
+# 🍪 Cookie-Based Authentication - No manual token management needed!
+#
+# HOW TO USE:
+# 1. Login once (Admin/Customer/Provider)
+# 2. Cookie is saved automatically by HTTP client
+# 3. All subsequent requests use the cookie automatically
+# 4. To switch user: Logout → Login with different account
 ###############################################################################
-
-### ============================================================================
-### PHASE 1: AUTHENTICATION & USER MANAGEMENT
-### ============================================================================
 
 ### Variables
 @baseUrl = http://localhost:8081
@@ -13,13 +15,50 @@
 @adminPassword = Admin@12345
 @customerEmail = customer2@example.com
 @customerPassword = Customer@123
-@providerEmail = provider2@example.com
+@providerEmail = provider22@example.com
 @providerPassword = Provider@123
 
-### Admin Token
-@adminToken = eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhZG1pbkB0cmFpbmluZ3Byb2plY3QuY29tIiwiaWF0IjoxNzY3NTE3ODM1LCJleHAiOjE3Njc2MDQyMzV9.3lVnvaVuL_pxaYog7qBuG2ZTPjPHTTIv7jR0I-ELc2zSK4XPOY_GvyhCVwWZ_tdT
-### Customer Token
-@customerToken = eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJjdXN0b21lcjJAZXhhbXBsZS5jb20iLCJpYXQiOjE3Njc1MTkzMTIsImV4cCI6MTc2NzYwNTcxMn0.fSw42ezCRE46bfbnfyIwqInrlcgthBN8lirqV7Zhgv3jzlpxybuh4EVBvlFfiCLS
+### ============================================================================
+### 🔐 STEP 1: LOGIN (Choose One - Cookie Will Be Saved Automatically)
+### ============================================================================
+
+### ---------- Login as ADMIN ----------
+# @name login-admin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+### ---------- Login as CUSTOMER ----------
+# @name login-customer
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{customerEmail}}",
+  "password": "{{customerPassword}}"
+}
+
+### ---------- Login as SERVICE PROVIDER ----------
+# @name login-provider
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{providerEmail}}",
+  "password": "{{providerPassword}}"
+}
+
+### ---------- LOGOUT (Clear Cookies) ----------
+# @name logout
+POST {{baseUrl}}/api/auth/logout
+
+### ============================================================================
+### PHASE 1: AUTHENTICATION & USER MANAGEMENT
+### ============================================================================
 ### ---------- 1.1 Register Customer ----------
 # @name register-customer
 POST {{baseUrl}}/api/auth/register
@@ -51,37 +90,7 @@ Content-Type: application/json
   "certificateUrl": "https://example.com/certificates/jane-smith.pdf"
 }
 
-### ---------- 1.3 Login Admin ----------
-# @name login-admin
-POST {{baseUrl}}/api/auth/login
-Content-Type: application/json
-
-{
-  "email": "{{adminEmail}}",
-  "password": "{{adminPassword}}"
-}
-
-### ---------- 1.4 Login Customer ----------
-# @name login-customer
-POST {{baseUrl}}/api/auth/login
-Content-Type: application/json
-
-{
-  "email": "{{customerEmail}}",
-  "password": "{{customerPassword}}"
-}
-
-### ---------- 1.5 Login Provider (Will fail until approved) ----------
-# @name login-provider
-POST {{baseUrl}}/api/auth/login
-Content-Type: application/json
-
-{
-  "email": "{{providerEmail}}",
-  "password": "{{providerPassword}}"
-}
-
-### ---------- 1.6 Login with Wrong Password (Expect 401) ----------
+### ---------- 1.3 Login with Wrong Password (Expect 401) ----------
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
@@ -117,16 +126,16 @@ Content-Type: application/json
 
 ### ============================================================================
 ### PHASE 2: ADMIN OPERATIONS
+### ⚠️ IMPORTANT: Login as ADMIN first (see STEP 1 above)
+### All requests below will use the cookie automatically - no manual headers needed!
 ### ============================================================================
 
 ### ---------- 2.1 Get Pending Provider Approvals ----------
 GET {{baseUrl}}/api/admin/providers/pending
-Authorization: Bearer {{adminToken}}
 
 ### ---------- 2.2 Approve Service Provider ----------
 # @name approve-provider
-PUT {{baseUrl}}/api/admin/providers/9/approve
-Authorization: Bearer {{adminToken}}
+PUT {{baseUrl}}/api/admin/providers/10/approve
 Content-Type: application/json
 
 {
@@ -135,7 +144,6 @@ Content-Type: application/json
 
 ### ---------- 2.3 Reject Service Provider ----------
 PUT {{baseUrl}}/api/admin/providers/3/reject
-Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
@@ -144,12 +152,10 @@ Content-Type: application/json
 
 ### ---------- 2.4 Get All Categories (Admin View) ----------
 GET {{baseUrl}}/api/admin/categories
-Authorization: Bearer {{adminToken}}
 
 ### ---------- 2.5 Create New Category ----------
 # @name create-category-programming
 POST {{baseUrl}}/api/admin/categories
-Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
@@ -161,7 +167,6 @@ Content-Type: application/json
 
 ### ---------- 2.6 Create Category: Design ----------
 POST {{baseUrl}}/api/admin/categories
-Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
@@ -173,7 +178,6 @@ Content-Type: application/json
 
 ### ---------- 2.7 Create Category: Marketing ----------
 POST {{baseUrl}}/api/admin/categories
-Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
@@ -185,7 +189,6 @@ Content-Type: application/json
 
 ### ---------- 2.8 Update Category ----------
 PUT {{baseUrl}}/api/admin/categories/1
-Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
@@ -196,12 +199,10 @@ Content-Type: application/json
 
 ### ---------- 2.9 Delete Category (Will fail if services exist) ----------
 DELETE {{baseUrl}}/api/admin/categories/5
-Authorization: Bearer {{adminToken}}
 
 ### ---------- 2.10 Create Subscription Plan: Basic ----------
 # @name create-plan-basic
 POST {{baseUrl}}/api/admin/subscription-plans
-Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
@@ -213,7 +214,6 @@ Content-Type: application/json
 
 ### ---------- 2.11 Create Subscription Plan: Pro ----------
 POST {{baseUrl}}/api/admin/subscription-plans
-Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
@@ -225,7 +225,6 @@ Content-Type: application/json
 
 ### ---------- 2.12 Create Subscription Plan: Enterprise ----------
 POST {{baseUrl}}/api/admin/subscription-plans
-Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
@@ -237,11 +236,9 @@ Content-Type: application/json
 
 ### ---------- 2.13 Get All Subscription Plans ----------
 GET {{baseUrl}}/api/admin/subscription-plans
-Authorization: Bearer {{adminToken}}
 
 ### ---------- 2.14 Update Subscription Plan ----------
 PUT {{baseUrl}}/api/admin/subscription-plans/1
-Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
@@ -251,19 +248,15 @@ Content-Type: application/json
 
 ### ---------- 2.15 Get Platform Statistics ----------
 GET {{baseUrl}}/api/admin/stats
-Authorization: Bearer {{adminToken}}
 
 ### ---------- 2.16 Get All Transactions ----------
 GET {{baseUrl}}/api/admin/transactions
-Authorization: Bearer {{adminToken}}
 
 ### ---------- 2.17 Get Pending Refund Requests ----------
 GET {{baseUrl}}/api/admin/refunds/pending
-Authorization: Bearer {{adminToken}}
 
 ### ---------- 2.18 Approve Refund Request ----------
 PUT {{baseUrl}}/api/admin/refunds/1/approve
-Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
@@ -272,7 +265,6 @@ Content-Type: application/json
 
 ### ---------- 2.19 Reject Refund Request ----------
 PUT {{baseUrl}}/api/admin/refunds/2/reject
-Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
@@ -281,33 +273,22 @@ Content-Type: application/json
 
 ### ---------- 2.20 Access Admin Endpoint as Customer (Expect 403) ----------
 GET {{baseUrl}}/api/admin/stats
-Authorization: Bearer {{customerToken}}
+# Cookie sent automatically
 
 
 ### ============================================================================
 ### PHASE 3: SERVICE PROVIDER OPERATIONS
+### ⚠️ IMPORTANT: Login as SERVICE PROVIDER first (see STEP 1 above)
+### All requests below will use the cookie automatically - no manual headers needed!
 ### ============================================================================
 
-### ---------- 3.1 Login Provider After Approval ----------
-# @name login-provider-approved
-POST {{baseUrl}}/api/auth/login
-Content-Type: application/json
-
-{
-  "email": "{{providerEmail}}",
-  "password": "{{providerPassword}}"
-}
-
-### Update provider token after approval
-@providerToken = eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJwcm92aWRlcjJAZXhhbXBsZS5jb20iLCJpYXQiOjE3Njc1MTc5NTgsImV4cCI6MTc2NzYwNDM1OH0.OvZEVPeTiGuXfDcdyhDjm8rjoCanzbJpmQopg19yLjSZwhQG6hEKQtYpPRNlsihU
-
-### ---------- 3.2 Get Available Subscription Plans (Public) ----------
+### ---------- 3.1 Get Available Subscription Plans (Public) ----------
 GET {{baseUrl}}/api/subscriptions/plans
 
-### ---------- 3.3 Subscribe to Plan (Basic Plan) ----------
+### ---------- 3.2 Subscribe to Plan (Basic Plan) ----------
 # @name subscribe-basic
 POST {{baseUrl}}/api/subscriptions/subscribe
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 Content-Type: application/json
 
 {
@@ -324,18 +305,18 @@ Content-Type: application/json
 }
 
 
-### ---------- 3.4 Get My Subscription ----------
+### ---------- 3.3 Get My Subscription ----------
 GET {{baseUrl}}/api/subscriptions/my-subscription
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 
-### ---------- 3.5 Cancel Auto-Renewal ----------
+### ---------- 3.4 Cancel Auto-Renewal ----------
 PUT {{baseUrl}}/api/subscriptions/cancel-renewal
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 
-### ---------- 3.6 Create Service: Java Course ----------
+### ---------- 3.5 Create Service: Java Course ----------
 # @name create-service-java
 POST {{baseUrl}}/api/provider/services
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 Content-Type: application/json
 
 {
@@ -348,9 +329,9 @@ Content-Type: application/json
   "locationAddress": "123 Tech Street, Silicon Valley, CA"
 }
 
-### ---------- 3.7 Create Service: Spring Boot ----------
+### ---------- 3.6 Create Service: Spring Boot ----------
 POST {{baseUrl}}/api/provider/services
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 Content-Type: application/json
 
 {
@@ -363,9 +344,9 @@ Content-Type: application/json
   "locationAddress": null
 }
 
-### ---------- 3.8 Create Service: React Development ----------
+### ---------- 3.7 Create Service: React Development ----------
 POST {{baseUrl}}/api/provider/services
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 Content-Type: application/json
 
 {
@@ -377,13 +358,13 @@ Content-Type: application/json
   "serviceType": "ONLINE"
 }
 
-### ---------- 3.9 Get My Services ----------
+### ---------- 3.8 Get My Services ----------
 GET {{baseUrl}}/api/provider/services
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 
-### ---------- 3.10 Update Service ----------
+### ---------- 3.9 Update Service ----------
 PUT {{baseUrl}}/api/provider/services/1
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 Content-Type: application/json
 
 {
@@ -391,14 +372,14 @@ Content-Type: application/json
   "description": "Master Java 21 features including virtual threads, record patterns, and more (UPDATED CONTENT!)"
 }
 
-### ---------- 3.11 Delete Service ----------
+### ---------- 3.10 Delete Service ----------
 DELETE {{baseUrl}}/api/provider/services/4
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 
-### ---------- 3.12 Set Availability: Monday ----------
+### ---------- 3.11 Set Availability: Monday ----------
 # @name set-availability-monday
 POST {{baseUrl}}/api/provider/availability
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 Content-Type: application/json
 
 {
@@ -407,9 +388,9 @@ Content-Type: application/json
   "endTime": "17:00:00"
 }
 
-### ---------- 3.13 Set Availability: Wednesday ----------
+### ---------- 3.12 Set Availability: Wednesday ----------
 POST {{baseUrl}}/api/provider/availability
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 Content-Type: application/json
 
 {
@@ -418,9 +399,9 @@ Content-Type: application/json
   "endTime": "18:00:00"
 }
 
-### ---------- 3.14 Set Availability: Friday ----------
+### ---------- 3.13 Set Availability: Friday ----------
 POST {{baseUrl}}/api/provider/availability
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 Content-Type: application/json
 
 {
@@ -429,13 +410,13 @@ Content-Type: application/json
   "endTime": "15:00:00"
 }
 
-### ---------- 3.15 Get My Availability ----------
+### ---------- 3.14 Get My Availability ----------
 GET {{baseUrl}}/api/provider/availability
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 
-### ---------- 3.16 Set Overlapping Availability (Expect 400) ----------
+### ---------- 3.15 Set Overlapping Availability (Expect 400) ----------
 POST {{baseUrl}}/api/provider/availability
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 Content-Type: application/json
 
 {
@@ -444,29 +425,32 @@ Content-Type: application/json
   "endTime": "20:00:00"
 }
 
-### ---------- 3.17 Delete Availability ----------
+### ---------- 3.16 Delete Availability ----------
 DELETE {{baseUrl}}/api/provider/availability/1
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 
-### ---------- 3.18 Get My Bookings ----------
+### ---------- 3.17 Get My Bookings ----------
 GET {{baseUrl}}/api/provider/bookings
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 
-### ---------- 3.19 Mark Booking as Completed ----------
+### ---------- 3.18 Mark Booking as Completed ----------
 PUT {{baseUrl}}/api/provider/bookings/1/complete
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 
-### ---------- 3.20 Get My Reviews ----------
+### ---------- 3.19 Get My Reviews ----------
 GET {{baseUrl}}/api/provider/reviews
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 
-### ---------- 3.21 Get Provider Statistics ----------
+### ---------- 3.20 Get Provider Statistics ----------
 GET {{baseUrl}}/api/provider/stats
-Authorization: Bearer {{providerToken}}
+# Cookie sent automatically
 
 
 ### ============================================================================
 ### PHASE 4: CUSTOMER & PUBLIC OPERATIONS
+### ⚠️ IMPORTANT: Login as CUSTOMER for protected endpoints (see STEP 1 above)
+### Public endpoints (categories, services listing) don't require authentication
+### Protected endpoints (bookings, reviews) will use cookie automatically
 ### ============================================================================
 
 ### ---------- 4.1 Get All Categories (Public) ----------
@@ -507,12 +491,12 @@ GET {{baseUrl}}/api/services/category/1
 
 ### ---------- 4.14 Get Available Time Slots ----------
 GET {{baseUrl}}/api/customer/services/1/slots
-Authorization: Bearer {{customerToken}}
+# Cookie sent automatically
 
 ### ---------- 4.15 Create Booking ----------
 # @name create-booking
 POST {{baseUrl}}/api/customer/bookings
-Authorization: Bearer {{customerToken}}
+# Cookie sent automatically
 Content-Type: application/json
 
 {
@@ -531,11 +515,11 @@ Content-Type: application/json
 
 ### ---------- 4.16 Get My Bookings ----------
 GET {{baseUrl}}/api/customer/bookings
-Authorization: Bearer {{customerToken}}
+# Cookie sent automatically
 
 ### ---------- 4.17 Cancel Booking ----------
 PUT {{baseUrl}}/api/customer/bookings/1/cancel
-Authorization: Bearer {{customerToken}}
+# Cookie sent automatically
 Content-Type: application/json
 
 {
@@ -544,7 +528,7 @@ Content-Type: application/json
 
 ### ---------- 4.18 Submit Review (After Booking Completed) ----------
 POST {{baseUrl}}/api/customer/reviews
-Authorization: Bearer {{customerToken}}
+# Cookie sent automatically
 Content-Type: application/json
 
 {
@@ -555,11 +539,11 @@ Content-Type: application/json
 
 ### ---------- 4.19 Get My Transactions ----------
 GET {{baseUrl}}/api/customer/transactions
-Authorization: Bearer {{customerToken}}
+# Cookie sent automatically
 
 ### ---------- 4.20 Request Refund ----------
 POST {{baseUrl}}/api/customer/refunds
-Authorization: Bearer {{customerToken}}
+# Cookie sent automatically
 Content-Type: application/json
 
 {
@@ -569,15 +553,15 @@ Content-Type: application/json
 
 ### ---------- 4.21 Get My Notifications ----------
 GET {{baseUrl}}/api/notifications
-Authorization: Bearer {{customerToken}}
+# Cookie sent automatically
 
 ### ---------- 4.22 Mark Notification as Read ----------
 PUT {{baseUrl}}/api/notifications/1/read
-Authorization: Bearer {{customerToken}}
+# Cookie sent automatically
 
 ### ---------- 4.23 Book Already Booked Slot (Expect 409) ----------
 POST {{baseUrl}}/api/customer/bookings
-Authorization: Bearer {{customerToken}}
+# Cookie sent automatically
 Content-Type: application/json
 
 {
@@ -596,7 +580,7 @@ Content-Type: application/json
 
 ### ---------- 4.24 Submit Duplicate Review (Expect 409) ----------
 POST {{baseUrl}}/api/customer/reviews
-Authorization: Bearer {{customerToken}}
+# Cookie sent automatically
 Content-Type: application/json
 
 {
@@ -607,7 +591,7 @@ Content-Type: application/json
 
 ### ---------- 4.25 Review Non-Completed Booking (Expect 400) ----------
 POST {{baseUrl}}/api/customer/reviews
-Authorization: Bearer {{customerToken}}
+# Cookie sent automatically
 Content-Type: application/json
 
 {

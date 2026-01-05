@@ -7,8 +7,13 @@ import lombok.NoArgsConstructor;
 
 /**
  * DTO for authentication response
- * Contains JWT token and user information
- * Returned after successful login or registration
+ *
+ * NOTE: JWT tokens are stored in HttpOnly Cookies for security
+ * - accessToken: 24 hours expiration
+ * - refreshToken: 7 days expiration
+ *
+ * Tokens in response body are for backward compatibility only
+ * Frontend should NOT store these tokens manually
  */
 @Data
 @Builder
@@ -16,8 +21,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AuthResponse {
 
-    private String token; // JWT access token
-    private String refreshToken; // JWT refresh token (optional for later)
+    private String token; // JWT access token (also stored in Cookie)
+    private String refreshToken; // JWT refresh token (also stored in Cookie)
     private String tokenType; // Always "Bearer"
     private Long expiresIn; // Token expiration time in milliseconds
     private UserResponse user; // User information (without password!)
