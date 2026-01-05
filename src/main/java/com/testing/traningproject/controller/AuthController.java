@@ -3,6 +3,7 @@ package com.testing.traningproject.controller;
 import com.testing.traningproject.model.dto.response.AuthResponse;
 import com.testing.traningproject.model.dto.request.LoginRequest;
 import com.testing.traningproject.model.dto.request.RegisterRequest;
+import com.testing.traningproject.security.JwtService;
 import com.testing.traningproject.service.AuthService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -12,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 /**
  * Authentication Controller
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtService jwtService;
 
     /**
      * Register a new user
@@ -103,6 +107,63 @@ public class AuthController {
     }
 
     /**
+     * Refresh Access Token using Refresh Token from Cookie
+     * Called when access token expires
+     *
+     * @param refreshToken Refresh token from cookie
+     * @param response HttpServletResponse to update access token cookie
+     * @return Success message with new token expiry time
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(
+            @CookieValue(value = "refreshToken", required = false) String refreshToken,
+            HttpServletResponse response) {
+
+        log.info("Token refresh request received");
+
+        if (refreshToken == null || refreshToken.isBlank()) {
+            log.warn("Refresh token not found in cookies");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Refresh token not found. Please login again."));
+        }
+
+        try {
+            // Validate refresh token
+            if (!jwtService.validateToken(refreshToken)) {
+                log.warn("Invalid or expired refresh token");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Invalid or expired refresh token. Please login again."));
+            }
+
+            // Extract email from refresh token
+            String email = jwtService.extractUsername(refreshToken);
+
+            // Generate new access token
+            String newAccessToken = jwtService.generateToken(email);
+
+            // Update access token cookie only
+            Cookie accessTokenCookie = new Cookie("accessToken", newAccessToken);
+            accessTokenCookie.setHttpOnly(true);
+            accessTokenCookie.setSecure(false); // Set to true in production with HTTPS
+            accessTokenCookie.setPath("/");
+            accessTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days (matches JWT expiration)
+            response.addCookie(accessTokenCookie);
+
+            log.info("Access token refreshed successfully for user: {}", email);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Token refreshed successfully",
+                    "expiresIn", 604800000 // 7 days in milliseconds
+            ));
+
+        } catch (Exception e) {
+            log.error("Error refreshing token: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Token refresh failed. Please login again."));
+        }
+    }
+
+    /**
      * Helper method to add authentication cookies
      *
      * @param response HttpServletResponse
@@ -110,23 +171,23 @@ public class AuthController {
      * @param refreshToken JWT refresh token
      */
     private void addAuthCookies(HttpServletResponse response, String accessToken, String refreshToken) {
-        // Access Token Cookie (24 hours)
+        // Access Token Cookie (7 days - FOR DEVELOPMENT)
+        // In production, should be 24 hours
         Cookie accessTokenCookie = new Cookie("accessToken", accessToken);
         accessTokenCookie.setHttpOnly(true); // Prevent JavaScript access (XSS protection)
         accessTokenCookie.setSecure(false);  // Set to true in production with HTTPS
         accessTokenCookie.setPath("/");
-        accessTokenCookie.setMaxAge(24 * 60 * 60); // 24 hours in seconds
+        accessTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days (matches JWT expiration)
         response.addCookie(accessTokenCookie);
 
-        // Refresh Token Cookie (7 days)
+        // Refresh Token Cookie (30 days)
         Cookie refreshTokenCookie = new Cookie("refreshToken", refreshToken);
         refreshTokenCookie.setHttpOnly(true); // Prevent JavaScript access
         refreshTokenCookie.setSecure(false);  // Set to true in production with HTTPS
         refreshTokenCookie.setPath("/");
-        refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days in seconds
+        refreshTokenCookie.setMaxAge(30 * 24 * 60 * 60); // 30 days (matches refresh token expiration)
         response.addCookie(refreshTokenCookie);
 
-        log.info("Authentication cookies added successfully");
+        log.info("Authentication cookies added successfully (Access: 7d, Refresh: 30d)");
     }
 }
-

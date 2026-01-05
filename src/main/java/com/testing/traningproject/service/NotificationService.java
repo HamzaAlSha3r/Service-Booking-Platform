@@ -7,6 +7,7 @@ import com.testing.traningproject.model.entity.Notification;
 import com.testing.traningproject.model.entity.User;
 import com.testing.traningproject.model.enums.NotificationType;
 import com.testing.traningproject.repository.NotificationRepository;
+import com.testing.traningproject.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import java.util.List;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
     private final NotificationMapper notificationMapper; // ✅ MapStruct mapper
 
     @Transactional
@@ -42,41 +44,50 @@ public class NotificationService {
     }
 
     /**
-     * جلب جميع الإشعارات للمستخدم
+     * Get all notifications for user
      */
     @Transactional(readOnly = true)
-    public List<NotificationResponse> getUserNotifications(User user) {
+    public List<NotificationResponse> getUserNotifications(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         List<Notification> notifications = notificationRepository.findByUserOrderByCreatedAtDesc(user);
         return notificationMapper.toResponseList(notifications);
     }
 
     /**
-     * جلب الإشعارات غير المقروءة فقط
+     * Get unread notifications only
      */
     @Transactional(readOnly = true)
-    public List<NotificationResponse> getUnreadNotifications(User user) {
+    public List<NotificationResponse> getUnreadNotifications(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         List<Notification> notifications = notificationRepository.findByUserAndIsReadFalseOrderByCreatedAtDesc(user);
         return notificationMapper.toResponseList(notifications);
     }
 
     /**
-     * عدد الإشعارات غير المقروءة
+     * Get unread notifications count
      */
     @Transactional(readOnly = true)
-    public Long getUnreadCount(User user) {
+    public Long getUnreadCount(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         return notificationRepository.countByUserAndIsReadFalse(user);
     }
 
     /**
-     * تعليم إشعار كـ مقروء
+     * Mark notification as read
      */
     @Transactional
-    public NotificationResponse markAsRead(Long notificationId, User user) {
+    public NotificationResponse markAsRead(Long notificationId, Long userId) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + notificationId));
 
-        // التحقق من ملكية الإشعار
-        if (!notification.getUser().getId().equals(user.getId())) {
+        // Verify ownership
+        if (!notification.getUser().getId().equals(userId)) {
             throw new ResourceNotFoundException("Notification not found");
         }
 
@@ -84,17 +95,20 @@ public class NotificationService {
             notification.setIsRead(true);
             notification.setReadAt(LocalDateTime.now());
             notificationRepository.save(notification);
-            log.info("Notification {} marked as read by user {}", notificationId, user.getEmail());
+            log.info("Notification {} marked as read by user ID: {}", notificationId, userId);
         }
 
         return notificationMapper.toResponse(notification);
     }
 
     /**
-     * تعليم جميع الإشعارات كـ مقروءة
+     * Mark all notifications as read
      */
     @Transactional
-    public void markAllAsRead(User user) {
+    public void markAllAsRead(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         List<Notification> unreadNotifications = notificationRepository.findByUserAndIsReadFalseOrderByCreatedAtDesc(user);
         LocalDateTime now = LocalDateTime.now();
 
@@ -104,24 +118,24 @@ public class NotificationService {
         });
 
         notificationRepository.saveAll(unreadNotifications);
-        log.info("All notifications marked as read for user {}", user.getEmail());
+        log.info("All notifications marked as read for user ID: {}", userId);
     }
 
     /**
-     * حذف إشعار
+     * Delete notification
      */
     @Transactional
-    public void deleteNotification(Long notificationId, User user) {
+    public void deleteNotification(Long notificationId, Long userId) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification not found with id: " + notificationId));
 
-        // التحقق من ملكية الإشعار
-        if (!notification.getUser().getId().equals(user.getId())) {
+        // Verify ownership
+        if (!notification.getUser().getId().equals(userId)) {
             throw new ResourceNotFoundException("Notification not found");
         }
 
         notificationRepository.delete(notification);
-        log.info("Notification {} deleted by user {}", notificationId, user.getEmail());
+        log.info("Notification {} deleted by user ID: {}", notificationId, userId);
     }
 }
 

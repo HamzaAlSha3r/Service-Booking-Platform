@@ -7,10 +7,12 @@ import com.testing.traningproject.model.dto.response.BookingResponse;
 import com.testing.traningproject.model.dto.response.ProviderAvailabilityResponse;
 import com.testing.traningproject.model.dto.response.ReviewResponse;
 import com.testing.traningproject.model.dto.response.ServiceResponse;
+import com.testing.traningproject.model.dto.response.TimeSlotResponse;
 import com.testing.traningproject.security.CustomUserDetails;
 import com.testing.traningproject.service.BookingService;
 import com.testing.traningproject.service.ProviderService;
 import com.testing.traningproject.service.ReviewService;
+import com.testing.traningproject.service.TimeSlotService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -33,6 +35,7 @@ public class ProviderController {
     private final ProviderService providerService;
     private final BookingService bookingService;
     private final ReviewService reviewService;
+    private final TimeSlotService timeSlotService;
 
     /**
      * Create a new service
@@ -114,6 +117,52 @@ public class ProviderController {
 
         providerService.deleteAvailability(userDetails.getId(), id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ==================== Time Slot Management ====================
+
+    /**
+     * Get all time slots for provider's services
+     * Optional filters: serviceId, fromDate, toDate, status
+     */
+    @GetMapping("/time-slots")
+    public ResponseEntity<List<TimeSlotResponse>> getMyTimeSlots(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) Long serviceId,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate,
+            @RequestParam(required = false) String status) {
+
+        List<TimeSlotResponse> slots = timeSlotService.getProviderTimeSlots(
+                userDetails.getId(), serviceId, fromDate, toDate, status);
+
+        return ResponseEntity.ok(slots);
+    }
+
+    /**
+     * Block a specific time slot
+     * Provider can block slots to prevent bookings (e.g., personal time off)
+     */
+    @PutMapping("/time-slots/{slotId}/block")
+    public ResponseEntity<TimeSlotResponse> blockTimeSlot(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long slotId) {
+
+        TimeSlotResponse response = timeSlotService.blockTimeSlot(userDetails.getId(), slotId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Unblock a previously blocked time slot
+     * Makes the slot available for booking again
+     */
+    @PutMapping("/time-slots/{slotId}/unblock")
+    public ResponseEntity<TimeSlotResponse> unblockTimeSlot(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long slotId) {
+
+        TimeSlotResponse response = timeSlotService.unblockTimeSlot(userDetails.getId(), slotId);
+        return ResponseEntity.ok(response);
     }
 
     // ==================== Booking Management ====================

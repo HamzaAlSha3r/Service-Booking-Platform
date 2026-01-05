@@ -25,6 +25,36 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Long> {
             LocalDate fromDate
     );
 
+    // Find available time slots within date range
+    List<TimeSlot> findByServiceIdAndStatusAndSlotDateBetweenOrderBySlotDateAscStartTimeAsc(
+            Long serviceId,
+            TimeSlotStatus status,
+            LocalDate fromDate,
+            LocalDate toDate
+    );
+
+    // Find time slots within date range (any status)
+    List<TimeSlot> findByServiceIdAndSlotDateBetweenOrderBySlotDateAscStartTimeAsc(
+            Long serviceId,
+            LocalDate fromDate,
+            LocalDate toDate
+    );
+
+    // Find time slots for multiple services with status filter
+    List<TimeSlot> findByServiceIdInAndStatusAndSlotDateBetweenOrderBySlotDateAscStartTimeAsc(
+            List<Long> serviceIds,
+            TimeSlotStatus status,
+            LocalDate fromDate,
+            LocalDate toDate
+    );
+
+    // Find time slots for multiple services (any status)
+    List<TimeSlot> findByServiceIdInAndSlotDateBetweenOrderBySlotDateAscStartTimeAsc(
+            List<Long> serviceIds,
+            LocalDate fromDate,
+            LocalDate toDate
+    );
+
     // Check if slot already exists
     boolean existsByServiceIdAndSlotDateAndStartTime(
             Long serviceId,
@@ -45,5 +75,25 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlot, Long> {
     // Find time slot by ID and status
     @Query("SELECT ts FROM TimeSlot ts WHERE ts.id = :slotId AND ts.status = :status")
     TimeSlot findByIdAndStatus(@Param("slotId") Long slotId, @Param("status") TimeSlotStatus status);
+
+    // Find time slots by service ID and day of week (for deletion when availability is removed)
+    // Uses PostgreSQL day of week extraction - Sunday=0, Monday=1, ..., Saturday=6
+    @Query(value = "SELECT * FROM time_slot ts " +
+           "WHERE ts.service_id = :serviceId " +
+           "AND EXTRACT(DOW FROM ts.slot_date) = " +
+           "CASE :dayOfWeek " +
+           "  WHEN 'MONDAY' THEN 1 " +
+           "  WHEN 'TUESDAY' THEN 2 " +
+           "  WHEN 'WEDNESDAY' THEN 3 " +
+           "  WHEN 'THURSDAY' THEN 4 " +
+           "  WHEN 'FRIDAY' THEN 5 " +
+           "  WHEN 'SATURDAY' THEN 6 " +
+           "  WHEN 'SUNDAY' THEN 0 " +
+           "END",
+           nativeQuery = true)
+    List<TimeSlot> findByServiceIdAndDayOfWeek(
+            @Param("serviceId") Long serviceId,
+            @Param("dayOfWeek") String dayOfWeek
+    );
 }
 

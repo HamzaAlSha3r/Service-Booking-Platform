@@ -59,6 +59,18 @@ public class JwtService {
     }
 
     /**
+     * Generate JWT token for username (email) - used for token refresh
+     */
+    public String generateToken(String username) {
+        return Jwts.builder()
+                .subject(username)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
+                .signWith(getSignInKey())
+                .compact();
+    }
+
+    /**
      * Generate JWT token with extra claims
      */
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
@@ -95,6 +107,17 @@ public class JwtService {
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+    }
+
+    /**
+     * Validate token without user details (for refresh token validation)
+     */
+    public boolean validateToken(String token) {
+        try {
+            return !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /**

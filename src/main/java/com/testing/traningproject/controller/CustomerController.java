@@ -4,11 +4,13 @@ import com.testing.traningproject.model.dto.request.CancelBookingRequest;
 import com.testing.traningproject.model.dto.request.CreateBookingRequest;
 import com.testing.traningproject.model.dto.request.CreateReviewRequest;
 import com.testing.traningproject.model.dto.response.BookingResponse;
+import com.testing.traningproject.model.dto.response.RefundResponse;
 import com.testing.traningproject.model.dto.response.ReviewResponse;
 import com.testing.traningproject.model.dto.response.TimeSlotResponse;
 import com.testing.traningproject.model.dto.response.TransactionResponse;
 import com.testing.traningproject.security.CustomUserDetails;
 import com.testing.traningproject.service.BookingService;
+import com.testing.traningproject.service.RefundService;
 import com.testing.traningproject.service.ReviewService;
 import com.testing.traningproject.service.TimeSlotService;
 import com.testing.traningproject.service.TransactionService;
@@ -37,21 +39,31 @@ public class CustomerController {
     private final ReviewService reviewService;
     private final TransactionService transactionService;
     private final TimeSlotService timeSlotService;
+    private final RefundService refundService;
 
     // ==================== Time Slot Endpoints ====================
 
     /**
      * Get available time slots for a service
+     * Optional parameters:
+     * - fromDate: Start date (default: today)
+     * - toDate: End date (default: +30 days from fromDate)
+     * - limit: Max number of slots to return (default: 50)
      */
     @GetMapping("/services/{serviceId}/slots")
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<List<TimeSlotResponse>> getAvailableTimeSlots(
             @AuthenticationPrincipal CustomUserDetails userDetails,
-            @PathVariable Long serviceId) {
+            @PathVariable Long serviceId,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate,
+            @RequestParam(defaultValue = "50") int limit) {
 
-        log.info("Customer ID: {} fetching available time slots for service ID: {}", userDetails.getId(), serviceId);
+        log.info("Customer ID: {} fetching available time slots for service ID: {} (fromDate: {}, toDate: {}, limit: {})",
+                userDetails.getId(), serviceId, fromDate, toDate, limit);
 
-        List<TimeSlotResponse> slots = timeSlotService.getAvailableTimeSlotsForService(serviceId);
+        List<TimeSlotResponse> slots = timeSlotService.getAvailableTimeSlotsForService(
+                serviceId, fromDate, toDate, limit);
 
         return ResponseEntity.ok(slots);
     }
@@ -155,6 +167,24 @@ public class CustomerController {
         List<TransactionResponse> transactions = transactionService.getMyTransactions(userDetails.getId());
 
         return ResponseEntity.ok(transactions);
+    }
+
+    // ==================== Refund Endpoints ====================
+
+    /**
+     * Get all refunds for the authenticated customer
+     * Shows refund status (PENDING, APPROVED, REJECTED, COMPLETED)
+     */
+    @GetMapping("/refunds")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<List<RefundResponse>> getMyRefunds(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        log.info("Fetching all refunds for customer ID: {}", userDetails.getId());
+
+        List<RefundResponse> refunds = refundService.getCustomerRefunds(userDetails.getId());
+
+        return ResponseEntity.ok(refunds);
     }
 }
 

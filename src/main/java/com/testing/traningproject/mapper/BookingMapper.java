@@ -19,6 +19,7 @@ public interface BookingMapper {
     @Mapping(source = "service.title", target = "serviceTitle")
     @Mapping(target = "providerName", expression = "java(booking.getService().getProvider().getFirstName() + \" \" + booking.getService().getProvider().getLastName())")
     @Mapping(source = "slot.slotDate", target = "slotDate")
+    @Mapping(target = "dayOfWeek", expression = "java(booking.getSlot().getSlotDate().getDayOfWeek().name())")
     @Mapping(source = "slot.startTime", target = "startTime")
     @Mapping(source = "slot.endTime", target = "endTime")
     BookingResponse toResponse(Booking booking);

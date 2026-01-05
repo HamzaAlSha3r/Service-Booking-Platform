@@ -22,6 +22,7 @@ public class TimeSlotResponse {
     private Long serviceId;
     private String serviceTitle;
     private LocalDate slotDate;
+    private String dayOfWeek; // MONDAY, TUESDAY, etc.
     private LocalTime startTime;
     private LocalTime endTime;
     private String status; // AVAILABLE, BOOKED, BLOCKED

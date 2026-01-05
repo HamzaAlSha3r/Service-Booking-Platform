@@ -34,6 +34,7 @@ public class ProviderService {
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final ProviderAvailabilityRepository providerAvailabilityRepository;
+    private final TimeSlotRepository timeSlotRepository;
     private final SubscriptionService subscriptionService;
     private final TimeSlotService timeSlotService;
     private final ServiceMapper serviceMapper; // ✅ MapStruct mapper
@@ -253,6 +254,10 @@ public class ProviderService {
     /**
      * Delete availability
      */
+    /**
+     * Delete availability and all associated time slots
+     * ⚠️ WARNING: This will delete ALL time slots for this day across ALL provider's services
+     */
     @Transactional
     public void deleteAvailability(Long providerId, Long availabilityId) {
         ProviderAvailability availability = providerAvailabilityRepository.findById(availabilityId)
@@ -262,9 +267,31 @@ public class ProviderService {
             throw new ForbiddenException("You can only delete your own availability");
         }
 
+        // Get the day of week for this availability
+        DayOfWeek dayOfWeek = availability.getDayOfWeek();
+
+        // Find all services for this provider
+        List<com.testing.traningproject.model.entity.Service> providerServices =
+                serviceRepository.findByProviderIdOrderByCreatedAtDesc(providerId);
+
+        // Delete all time slots for this day of week across all provider's services
+        int deletedSlots = 0;
+        for (com.testing.traningproject.model.entity.Service service : providerServices) {
+            // Delete slots matching this day of week
+            List<TimeSlot> slotsToDelete = timeSlotRepository.findByServiceIdAndDayOfWeek(
+                    service.getId(), dayOfWeek.name());
+
+            if (!slotsToDelete.isEmpty()) {
+                timeSlotRepository.deleteAll(slotsToDelete);
+                deletedSlots += slotsToDelete.size();
+            }
+        }
+
+        // Delete the availability
         providerAvailabilityRepository.delete(availability);
 
-        log.info("Availability deleted successfully - ID: {}", availabilityId);
+        log.info("Availability deleted - ID: {}, Deleted {} time slots for {}",
+                availabilityId, deletedSlots, dayOfWeek);
     }
 
     // ==================== Helper Methods ====================

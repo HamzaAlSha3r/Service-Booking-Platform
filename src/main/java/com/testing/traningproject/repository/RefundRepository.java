@@ -30,6 +30,12 @@ public interface RefundRepository extends JpaRepository<Refund, Long> {
     boolean existsByBookingId(Long bookingId);
 
     /**
+     * Find all refunds by customer ID
+     * Used to show customer their refund requests
+     */
+    List<Refund> findByBookingCustomerId(Long customerId);
+
+    /**
      * Count refunds by status
      */
     long countByStatus(RefundStatus status);

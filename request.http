@@ -15,7 +15,7 @@
 @adminPassword = Admin@12345
 @customerEmail = customer2@example.com
 @customerPassword = Customer@123
-@providerEmail = provider22@example.com
+@providerEmail = provider2232@example.com
 @providerPassword = Provider@123
 
 ### ============================================================================
@@ -55,6 +55,13 @@ Content-Type: application/json
 ### ---------- LOGOUT (Clear Cookies) ----------
 # @name logout
 POST {{baseUrl}}/api/auth/logout
+
+### ---------- REFRESH TOKEN (Renew Access Token) ----------
+### Use this when you get 403 Forbidden (token expired)
+### Refresh Token (30 days) will auto-renew Access Token (7 days)
+# @name refresh-token
+POST {{baseUrl}}/api/auth/refresh
+# Cookie sent automatically (refreshToken)
 
 ### ============================================================================
 ### PHASE 1: AUTHENTICATION & USER MANAGEMENT
@@ -135,7 +142,7 @@ GET {{baseUrl}}/api/admin/providers/pending
 
 ### ---------- 2.2 Approve Service Provider ----------
 # @name approve-provider
-PUT {{baseUrl}}/api/admin/providers/10/approve
+PUT {{baseUrl}}/api/admin/providers/12/approve
 Content-Type: application/json
 
 {
@@ -170,7 +177,7 @@ POST {{baseUrl}}/api/admin/categories
 Content-Type: application/json
 
 {
-  "name": "Design",
+  "name": "HARDWARE",
   "description": "Graphic design, UI/UX, and creative services",
   "iconUrl": "https://example.com/icons/design.png",
   "isActive": true
@@ -198,7 +205,7 @@ Content-Type: application/json
 }
 
 ### ---------- 2.9 Delete Category (Will fail if services exist) ----------
-DELETE {{baseUrl}}/api/admin/categories/5
+DELETE {{baseUrl}}/api/admin/categories/4
 
 ### ---------- 2.10 Create Subscription Plan: Basic ----------
 # @name create-plan-basic
@@ -292,7 +299,7 @@ POST {{baseUrl}}/api/subscriptions/subscribe
 Content-Type: application/json
 
 {
-  "planId": 1,
+  "planId": 2,
   "paymentMethod": "card",
   "paymentCard": {
     "cardNumber": "4242424242424242",
@@ -363,12 +370,12 @@ GET {{baseUrl}}/api/provider/services
 # Cookie sent automatically
 
 ### ---------- 3.9 Update Service ----------
-PUT {{baseUrl}}/api/provider/services/1
+PUT {{baseUrl}}/api/provider/services/8
 # Cookie sent automatically
 Content-Type: application/json
 
 {
-  "price": 99.99,
+  "durationMinutes": 120,
   "description": "Master Java 21 features including virtual threads, record patterns, and more (UPDATED CONTENT!)"
 }
 
@@ -377,6 +384,14 @@ DELETE {{baseUrl}}/api/provider/services/4
 # Cookie sent automatically
 
 ### ---------- 3.11 Set Availability: Monday ----------
+### ⚠️ IMPORTANT: Slots are generated based on SERVICE DURATION
+### Example: If service duration = 120 minutes, availability 09:00-11:00 = 1 slot (09:00-11:00)
+### Example: If service duration = 60 minutes, availability 09:00-11:00 = 2 slots (09:00-10:00, 10:00-11:00)
+###
+### If you UPDATE service duration, you MUST:
+### 1. Delete old availability (DELETE /api/provider/availability/{id})
+### 2. Create new availability (POST below)
+### This regenerates slots with correct duration!
 # @name set-availability-monday
 POST {{baseUrl}}/api/provider/availability
 # Cookie sent automatically
@@ -385,7 +400,7 @@ Content-Type: application/json
 {
   "dayOfWeek": "MONDAY",
   "startTime": "09:00:00",
-  "endTime": "17:00:00"
+  "endTime": "11:00:00"
 }
 
 ### ---------- 3.12 Set Availability: Wednesday ----------
@@ -396,7 +411,7 @@ Content-Type: application/json
 {
   "dayOfWeek": "WEDNESDAY",
   "startTime": "10:00:00",
-  "endTime": "18:00:00"
+  "endTime": "12:00:00"
 }
 
 ### ---------- 3.13 Set Availability: Friday ----------
@@ -425,8 +440,38 @@ Content-Type: application/json
   "endTime": "20:00:00"
 }
 
-### ---------- 3.16 Delete Availability ----------
-DELETE {{baseUrl}}/api/provider/availability/1
+### ---------- 3.16 Delete Availability (Deletes ALL Monday slots across ALL your services) ----------
+### ✅ USE CASE: When you update service duration (e.g., 60 → 120 minutes)
+###   1. Delete old availability: DELETE /api/provider/availability/{id}
+###   2. Create new availability: POST /api/provider/availability (same times)
+###   → This regenerates slots with correct duration!
+DELETE {{baseUrl}}/api/provider/availability/10
+# Cookie sent automatically
+
+### ---------- 3.16a Get My Time Slots (All Services) ----------
+GET {{baseUrl}}/api/provider/time-slots
+# Cookie sent automatically
+
+### ---------- 3.16b Get Time Slots for Specific Service ----------
+GET {{baseUrl}}/api/provider/time-slots?serviceId=8
+# Cookie sent automatically
+
+### ---------- 3.16c Get Time Slots with Date Range ----------
+GET {{baseUrl}}/api/provider/time-slots?fromDate=2026-01-05&toDate=2026-01-12
+# Cookie sent automatically
+
+### ---------- 3.16d Get Only BLOCKED Slots ----------
+GET {{baseUrl}}/api/provider/time-slots?status=BLOCKED
+# Cookie sent automatically
+
+### ---------- 3.16e Block Specific Time Slot ----------
+### ✅ BETTER SOLUTION: Block ONE slot instead of deleting entire day!
+### Example: Block Monday 05/01/2026 11:00-12:00 only
+PUT {{baseUrl}}/api/provider/time-slots/152/block
+# Cookie sent automatically
+
+### ---------- 3.16f Unblock Time Slot (Make Available Again) ----------
+PUT {{baseUrl}}/api/provider/time-slots/127/unblock
 # Cookie sent automatically
 
 ### ---------- 3.17 Get My Bookings ----------
@@ -472,7 +517,7 @@ GET {{baseUrl}}/api/services?categoryId=1
 GET {{baseUrl}}/api/services?minPrice=50&maxPrice=100
 
 ### ---------- 4.8 Filter by Category and Price Range ----------
-GET {{baseUrl}}/api/services?categoryId=1&minPrice=10&maxPrice=20
+GET {{baseUrl}}/api/services?categoryId=1&minPrice=100&maxPrice=200
 
 ### ---------- 4.9 Sort Services by Price (Low to High) ----------
 GET {{baseUrl}}/api/services?categoryId=1&sortBy=price_low
@@ -489,8 +534,26 @@ GET {{baseUrl}}/api/services/1
 ### ---------- 4.13 Get Services by Category ----------
 GET {{baseUrl}}/api/services/category/1
 
-### ---------- 4.14 Get Available Time Slots ----------
-GET {{baseUrl}}/api/customer/services/1/slots
+### ---------- 4.14 Get Available Time Slots (Next 30 Days - Default) ----------
+### By default, shows all available slots for the next 30 days
+### You can customize with: ?fromDate=YYYY-MM-DD&toDate=YYYY-MM-DD&limit=50
+GET {{baseUrl}}/api/customer/services/8/slots
+# Cookie sent automatically
+
+### ---------- 4.14a Get Available Time Slots (Specific Date Range) ----------
+GET {{baseUrl}}/api/customer/services/6/slots?fromDate=2026-01-05&toDate=2026-01-12
+# Cookie sent automatically
+
+### ---------- 4.14b Get Available Time Slots (Today Only) ----------
+GET {{baseUrl}}/api/customer/services/8/slots?fromDate=2026-01-05&toDate=2026-01-05
+# Cookie sent automatically
+
+### ---------- 4.14c Get Available Time Slots (Limited to 10 slots) ----------
+GET {{baseUrl}}/api/customer/services/8/slots?limit=10
+# Cookie sent automatically
+
+### ---------- 4.14d Get ALL Available Slots (Next 60 days) ----------
+GET {{baseUrl}}/api/customer/services/6/slots?fromDate=2026-01-05&toDate=2026-03-06
 # Cookie sent automatically
 
 ### ---------- 4.15 Create Booking ----------
@@ -500,8 +563,8 @@ POST {{baseUrl}}/api/customer/bookings
 Content-Type: application/json
 
 {
-  "serviceId": 1,
-  "slotId": 1,
+  "serviceId": 8,
+  "slotId": 156,
   "paymentMethod": "card",
   "paymentCard": {
     "cardNumber": "4242424242424242",
@@ -518,7 +581,7 @@ GET {{baseUrl}}/api/customer/bookings
 # Cookie sent automatically
 
 ### ---------- 4.17 Cancel Booking ----------
-PUT {{baseUrl}}/api/customer/bookings/1/cancel
+PUT {{baseUrl}}/api/customer/bookings/4/cancel
 # Cookie sent automatically
 Content-Type: application/json
 
@@ -538,7 +601,17 @@ Content-Type: application/json
 }
 
 ### ---------- 4.19 Get My Transactions ----------
+### Shows all payment transactions (BOOKING_PAYMENT, REFUND, etc.)
 GET {{baseUrl}}/api/customer/transactions
+# Cookie sent automatically
+
+### ---------- 4.19a Get My Refunds ----------
+### ✅ IMPORTANT: Check refund status here!
+### - PENDING: Waiting for admin approval (>24hrs before booking)
+### - APPROVED: Admin approved, refund being processed
+### - COMPLETED: Refund processed successfully (will also appear in transactions)
+### - REJECTED: Admin rejected the refund request
+GET {{baseUrl}}/api/customer/refunds
 # Cookie sent automatically
 
 ### ---------- 4.20 Request Refund ----------

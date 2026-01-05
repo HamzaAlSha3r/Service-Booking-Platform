@@ -1,12 +1,11 @@
 package com.testing.traningproject.controller;
 
 import com.testing.traningproject.model.dto.response.NotificationResponse;
-import com.testing.traningproject.model.entity.User;
+import com.testing.traningproject.security.CustomUserDetails;
 import com.testing.traningproject.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -14,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Notification Controller - إدارة الإشعارات
+ * Notification Controller - Manage user notifications
  */
 @RestController
 @RequestMapping("/api/notifications")
@@ -24,38 +23,35 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     /**
-     * جلب جميع الإشعارات للمستخدم الحالي
+     * Get all notifications for current user
      */
     @GetMapping
     public ResponseEntity<List<NotificationResponse>> getMyNotifications(
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        User user = (User) userDetails;
-        List<NotificationResponse> notifications = notificationService.getUserNotifications(user);
+        List<NotificationResponse> notifications = notificationService.getUserNotifications(userDetails.getId());
         return ResponseEntity.ok(notifications);
     }
 
     /**
-     * جلب الإشعارات غير المقروءة فقط
+     * Get unread notifications only
      */
     @GetMapping("/unread")
     public ResponseEntity<List<NotificationResponse>> getUnreadNotifications(
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        User user = (User) userDetails;
-        List<NotificationResponse> notifications = notificationService.getUnreadNotifications(user);
+        List<NotificationResponse> notifications = notificationService.getUnreadNotifications(userDetails.getId());
         return ResponseEntity.ok(notifications);
     }
 
     /**
-     * عدد الإشعارات غير المقروءة
+     * Get unread notifications count
      */
     @GetMapping("/unread/count")
     public ResponseEntity<Map<String, Long>> getUnreadCount(
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        User user = (User) userDetails;
-        Long count = notificationService.getUnreadCount(user);
+        Long count = notificationService.getUnreadCount(userDetails.getId());
 
         Map<String, Long> response = new HashMap<>();
         response.put("unreadCount", count);
@@ -64,27 +60,25 @@ public class NotificationController {
     }
 
     /**
-     * تعليم إشعار كـ مقروء
+     * Mark notification as read
      */
     @PutMapping("/{id}/read")
     public ResponseEntity<NotificationResponse> markAsRead(
             @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        User user = (User) userDetails;
-        NotificationResponse notification = notificationService.markAsRead(id, user);
+        NotificationResponse notification = notificationService.markAsRead(id, userDetails.getId());
         return ResponseEntity.ok(notification);
     }
 
     /**
-     * تعليم جميع الإشعارات كـ مقروءة
+     * Mark all notifications as read
      */
     @PutMapping("/read-all")
     public ResponseEntity<Map<String, String>> markAllAsRead(
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        User user = (User) userDetails;
-        notificationService.markAllAsRead(user);
+        notificationService.markAllAsRead(userDetails.getId());
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "All notifications marked as read");
@@ -93,15 +87,14 @@ public class NotificationController {
     }
 
     /**
-     * حذف إشعار
+     * Delete notification
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteNotification(
             @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        User user = (User) userDetails;
-        notificationService.deleteNotification(id, user);
+        notificationService.deleteNotification(id, userDetails.getId());
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "Notification deleted successfully");

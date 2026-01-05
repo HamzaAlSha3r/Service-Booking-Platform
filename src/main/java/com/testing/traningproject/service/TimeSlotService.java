@@ -35,11 +35,18 @@ public class TimeSlotService {
     private final TimeSlotMapper timeSlotMapper; // ✅ MapStruct mapper
 
     /**
-     * Get available time slots for a service (next 30 days)
+     * Get available time slots for a service with optional date filtering
+     * @param serviceId Service ID
+     * @param fromDateStr Start date (YYYY-MM-DD) or null for today
+     * @param toDateStr End date (YYYY-MM-DD) or null for +7 days from start
+     * @param limit Maximum number of slots to return (default: 50)
      */
     @Transactional(readOnly = true)
-    public List<TimeSlotResponse> getAvailableTimeSlotsForService(Long serviceId) {
-        log.info("Fetching available time slots for service ID: {}", serviceId);
+    public List<TimeSlotResponse> getAvailableTimeSlotsForService(
+            Long serviceId, String fromDateStr, String toDateStr, int limit) {
+
+        log.info("Fetching available time slots for service ID: {} (from: {}, to: {}, limit: {})",
+                serviceId, fromDateStr, toDateStr, limit);
 
         // Validate service exists
         com.testing.traningproject.model.entity.Service service = serviceRepository.findById(serviceId)
@@ -48,13 +55,30 @@ public class TimeSlotService {
         // Generate time slots for the next 30 days if not already generated
         generateTimeSlotsForService(service);
 
-        // Get available time slots (AVAILABLE status only)
+        // Parse dates
+        LocalDate fromDate = (fromDateStr != null && !fromDateStr.isBlank())
+                ? LocalDate.parse(fromDateStr)
+                : LocalDate.now();
+
+        LocalDate toDate = (toDateStr != null && !toDateStr.isBlank())
+                ? LocalDate.parse(toDateStr)
+                : fromDate.plusDays(30); // Default: next 30 days (matches slot generation period)
+
+        // Get available time slots within date range
         List<TimeSlot> availableSlots = timeSlotRepository
-                .findByServiceIdAndStatusAndSlotDateGreaterThanEqualOrderBySlotDateAscStartTimeAsc(
+                .findByServiceIdAndStatusAndSlotDateBetweenOrderBySlotDateAscStartTimeAsc(
                         serviceId,
                         TimeSlotStatus.AVAILABLE,
-                        LocalDate.now()
+                        fromDate,
+                        toDate
                 );
+
+        // Apply limit
+        if (limit > 0 && availableSlots.size() > limit) {
+            availableSlots = availableSlots.subList(0, limit);
+        }
+
+        log.info("Found {} available slots for service ID: {}", availableSlots.size(), serviceId);
 
         return timeSlotMapper.toResponseList(availableSlots);
     }
@@ -103,6 +127,7 @@ public class TimeSlotService {
 
     /**
      * Generate time slots for a specific date and time period
+     * Creates slots based on service duration (e.g., 120-minute service = one 2-hour slot)
      */
     private void generateSlotsForPeriod(com.testing.traningproject.model.entity.Service service,
                                         LocalDate date,
@@ -111,6 +136,7 @@ public class TimeSlotService {
                                         Integer durationMinutes) {
         LocalTime currentTime = startTime;
 
+        // Generate slots until we can't fit a full service duration
         while (currentTime.plusMinutes(durationMinutes).isBefore(endTime)
                 || currentTime.plusMinutes(durationMinutes).equals(endTime)) {
 
@@ -121,7 +147,7 @@ public class TimeSlotService {
                     service.getId(), date, currentTime);
 
             if (!exists) {
-                // Create new time slot
+                // Create new time slot with service duration
                 TimeSlot timeSlot = TimeSlot.builder()
                         .service(service)
                         .slotDate(date)
@@ -133,8 +159,11 @@ public class TimeSlotService {
                         .build();
 
                 timeSlotRepository.save(timeSlot);
+
+                log.debug("Created slot: {} - {} to {}", date, currentTime, slotEndTime);
             }
 
+            // Move to next slot (don't overlap - jump by full service duration)
             currentTime = slotEndTime;
         }
     }
@@ -153,5 +182,122 @@ public class TimeSlotService {
             case SUNDAY -> DayOfWeek.SUNDAY;
         };
     }
-}
 
+    /**
+     * Get all time slots for a provider's services with optional filters
+     */
+    @Transactional(readOnly = true)
+    public List<TimeSlotResponse> getProviderTimeSlots(
+            Long providerId, Long serviceId, String fromDateStr, String toDateStr, String statusStr) {
+
+        log.info("Fetching time slots for provider ID: {} (serviceId: {}, from: {}, to: {}, status: {})",
+                providerId, serviceId, fromDateStr, toDateStr, statusStr);
+
+        // Parse dates
+        LocalDate fromDate = (fromDateStr != null && !fromDateStr.isBlank())
+                ? LocalDate.parse(fromDateStr)
+                : LocalDate.now();
+
+        LocalDate toDate = (toDateStr != null && !toDateStr.isBlank())
+                ? LocalDate.parse(toDateStr)
+                : fromDate.plusDays(30);
+
+        // Parse status
+        TimeSlotStatus status = (statusStr != null && !statusStr.isBlank())
+                ? TimeSlotStatus.valueOf(statusStr.toUpperCase())
+                : null;
+
+        List<TimeSlot> slots;
+
+        if (serviceId != null) {
+            // Filter by specific service
+            if (status != null) {
+                slots = timeSlotRepository.findByServiceIdAndStatusAndSlotDateBetweenOrderBySlotDateAscStartTimeAsc(
+                        serviceId, status, fromDate, toDate);
+            } else {
+                slots = timeSlotRepository.findByServiceIdAndSlotDateBetweenOrderBySlotDateAscStartTimeAsc(
+                        serviceId, fromDate, toDate);
+            }
+        } else {
+            // Get all slots for provider's services
+            List<com.testing.traningproject.model.entity.Service> services =
+                    serviceRepository.findByProviderIdOrderByCreatedAtDesc(providerId);
+
+            List<Long> serviceIds = services.stream()
+                    .map(com.testing.traningproject.model.entity.Service::getId)
+                    .toList();
+
+            if (status != null) {
+                slots = timeSlotRepository.findByServiceIdInAndStatusAndSlotDateBetweenOrderBySlotDateAscStartTimeAsc(
+                        serviceIds, status, fromDate, toDate);
+            } else {
+                slots = timeSlotRepository.findByServiceIdInAndSlotDateBetweenOrderBySlotDateAscStartTimeAsc(
+                        serviceIds, fromDate, toDate);
+            }
+        }
+
+        return timeSlotMapper.toResponseList(slots);
+    }
+
+    /**
+     * Block a time slot (prevent bookings)
+     */
+    @Transactional
+    public TimeSlotResponse blockTimeSlot(Long providerId, Long slotId) {
+        log.info("Provider ID: {} blocking time slot ID: {}", providerId, slotId);
+
+        TimeSlot slot = timeSlotRepository.findById(slotId)
+                .orElseThrow(() -> new ResourceNotFoundException("Time slot not found"));
+
+        // Verify ownership
+        if (!slot.getService().getProvider().getId().equals(providerId)) {
+            throw new com.testing.traningproject.exception.ForbiddenException(
+                    "You don't have permission to block this time slot");
+        }
+
+        // Check if already booked
+        if (slot.getStatus() == TimeSlotStatus.BOOKED) {
+            throw new com.testing.traningproject.exception.BadRequestException(
+                    "Cannot block a time slot that is already booked");
+        }
+
+        slot.setStatus(TimeSlotStatus.BLOCKED);
+        slot.setUpdatedAt(LocalDateTime.now());
+
+        timeSlotRepository.save(slot);
+
+        log.info("Time slot ID: {} blocked successfully", slotId);
+        return timeSlotMapper.toResponse(slot);
+    }
+
+    /**
+     * Unblock a time slot (make it available again)
+     */
+    @Transactional
+    public TimeSlotResponse unblockTimeSlot(Long providerId, Long slotId) {
+        log.info("Provider ID: {} unblocking time slot ID: {}", providerId, slotId);
+
+        TimeSlot slot = timeSlotRepository.findById(slotId)
+                .orElseThrow(() -> new ResourceNotFoundException("Time slot not found"));
+
+        // Verify ownership
+        if (!slot.getService().getProvider().getId().equals(providerId)) {
+            throw new com.testing.traningproject.exception.ForbiddenException(
+                    "You don't have permission to unblock this time slot");
+        }
+
+        // Check if currently blocked
+        if (slot.getStatus() != TimeSlotStatus.BLOCKED) {
+            throw new com.testing.traningproject.exception.BadRequestException(
+                    "Time slot is not blocked. Current status: " + slot.getStatus());
+        }
+
+        slot.setStatus(TimeSlotStatus.AVAILABLE);
+        slot.setUpdatedAt(LocalDateTime.now());
+
+        timeSlotRepository.save(slot);
+
+        log.info("Time slot ID: {} unblocked successfully", slotId);
+        return timeSlotMapper.toResponse(slot);
+    }
+}

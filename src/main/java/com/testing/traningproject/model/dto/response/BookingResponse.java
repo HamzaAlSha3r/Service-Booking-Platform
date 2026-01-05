@@ -27,6 +27,7 @@ public class BookingResponse {
     private String serviceTitle;
     private String providerName;
     private LocalDate slotDate;
+    private String dayOfWeek; // MONDAY, TUESDAY, etc.
     private LocalTime startTime;
     private LocalTime endTime;
     private BigDecimal totalPrice;

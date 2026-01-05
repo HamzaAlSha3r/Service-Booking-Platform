@@ -13,8 +13,9 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface ReviewMapper {
 
+    @Mapping(source = "booking.id", target = "bookingId")
     @Mapping(source = "booking.customer.firstName", target = "customerName")
-    @Mapping(source = "booking.service.title", target = "serviceName")
+    @Mapping(source = "booking.service.title", target = "serviceTitle")
     ReviewResponse toResponse(Review review);
 
     List<ReviewResponse> toResponseList(List<Review> reviews);

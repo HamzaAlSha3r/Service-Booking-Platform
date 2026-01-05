@@ -17,6 +17,7 @@ public interface TimeSlotMapper {
 
     @Mapping(source = "service.id", target = "serviceId")
     @Mapping(source = "service.title", target = "serviceTitle")
+    @Mapping(target = "dayOfWeek", expression = "java(timeSlot.getSlotDate().getDayOfWeek().name())")
     @Mapping(target = "status", expression = "java(timeSlot.getStatus().name())")
     TimeSlotResponse toResponse(TimeSlot timeSlot);
 
