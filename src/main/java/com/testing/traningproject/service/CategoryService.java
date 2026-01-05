@@ -2,6 +2,7 @@ package com.testing.traningproject.service;
 
 import com.testing.traningproject.exception.DuplicateResourceException;
 import com.testing.traningproject.exception.ResourceNotFoundException;
+import com.testing.traningproject.mapper.CategoryMapper;
 import com.testing.traningproject.model.dto.request.CategoryRequest;
 import com.testing.traningproject.model.dto.response.CategoryResponse;
 import com.testing.traningproject.model.entity.Category;
@@ -14,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Service layer for Category management
@@ -26,6 +26,7 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final ServiceRepository serviceRepository;
+    private final CategoryMapper categoryMapper; // ✅ MapStruct mapper
 
     /**
      * Get all categories (admin only - includes inactive)
@@ -36,9 +37,11 @@ public class CategoryService {
 
         List<Category> categories = categoryRepository.findAllByOrderByNameAsc();
 
-        return categories.stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+        return categoryMapper.toResponseList(categories).stream()
+                .peek(response -> response.setTotalServices(
+                        serviceRepository.countByCategoryIdAndIsActiveTrue(response.getId())
+                ))
+                .toList();
     }
 
     /**
@@ -50,9 +53,11 @@ public class CategoryService {
 
         List<Category> categories = categoryRepository.findByIsActiveTrue();
 
-        return categories.stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+        return categoryMapper.toResponseList(categories).stream()
+                .peek(response -> response.setTotalServices(
+                        serviceRepository.countByCategoryIdAndIsActiveTrue(response.getId())
+                ))
+                .toList();
     }
 
 
@@ -66,7 +71,9 @@ public class CategoryService {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
 
-        return convertToResponse(category);
+        CategoryResponse response = categoryMapper.toResponse(category);
+        response.setTotalServices(serviceRepository.countByCategoryIdAndIsActiveTrue(categoryId));
+        return response;
     }
 
     /**
@@ -91,7 +98,9 @@ public class CategoryService {
         Category savedCategory = categoryRepository.save(category);
         log.info("Category created successfully with ID: {}", savedCategory.getId());
 
-        return convertToResponse(savedCategory);
+        CategoryResponse response = categoryMapper.toResponse(savedCategory);
+        response.setTotalServices(0L); // New category has no services yet
+        return response;
     }
 
     /**
@@ -129,8 +138,11 @@ public class CategoryService {
         Category updatedCategory = categoryRepository.save(category);
         log.info("Category updated successfully: {}", categoryId);
 
-        return convertToResponse(updatedCategory);
+        CategoryResponse response = categoryMapper.toResponse(updatedCategory);
+        response.setTotalServices(serviceRepository.countByCategoryIdAndIsActiveTrue(categoryId));
+        return response;
     }
+
 
     /**
      * Delete category (admin only)
@@ -151,25 +163,6 @@ public class CategoryService {
 
         categoryRepository.delete(category);
         log.info("Category deleted successfully: {}", categoryId);
-    }
-
-    /**
-     * Convert Category entity to CategoryResponse DTO
-     */
-    private CategoryResponse convertToResponse(Category category) {
-        long totalServices = serviceRepository.countByCategoryIdAndIsActiveTrue(category.getId());
-
-
-        return CategoryResponse.builder()
-                .id(category.getId())
-                .name(category.getName())
-                .description(category.getDescription())
-                .iconUrl(category.getIconUrl())
-                .isActive(category.getIsActive())
-                .totalServices(totalServices)
-                .createdAt(category.getCreatedAt())
-                .updatedAt(category.getUpdatedAt())
-                .build();
     }
 }
 

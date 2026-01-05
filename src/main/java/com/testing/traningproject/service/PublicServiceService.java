@@ -1,6 +1,7 @@
 package com.testing.traningproject.service;
 
 import com.testing.traningproject.exception.ResourceNotFoundException;
+import com.testing.traningproject.mapper.ServiceMapper;
 import com.testing.traningproject.model.dto.response.ServiceResponse;
 import com.testing.traningproject.model.entity.Category;
 import com.testing.traningproject.model.entity.Service;
@@ -14,7 +15,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Service layer for public service browsing and search
@@ -27,6 +27,7 @@ public class PublicServiceService {
 
     private final ServiceRepository serviceRepository;
     private final CategoryRepository categoryRepository;
+    private final ServiceMapper serviceMapper; // ✅ MapStruct mapper
 
     /**
      * Search and filter services with multiple criteria
@@ -70,9 +71,7 @@ public class PublicServiceService {
             services = applySorting(services, sortBy);
         }
 
-        return services.stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+        return serviceMapper.toResponseList(services);
     }
 
     /**
@@ -89,7 +88,7 @@ public class PublicServiceService {
             throw new ResourceNotFoundException("Service is not available");
         }
 
-        return convertToResponse(service);
+        return serviceMapper.toResponse(service);
     }
 
     /**
@@ -103,24 +102,13 @@ public class PublicServiceService {
         categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
 
-        List<Service> services;
+        List<Service> services = switch (sortBy.toLowerCase()) {
+            case "price_low" -> serviceRepository.findByCategoryIdAndIsActiveTrueOrderByPriceAsc(categoryId);
+            case "price_high" -> serviceRepository.findByCategoryIdAndIsActiveTrueOrderByPriceDesc(categoryId);
+            default -> serviceRepository.findByCategoryIdAndIsActiveTrueOrderByCreatedAtDesc(categoryId);
+        };
 
-        switch (sortBy.toLowerCase()) {
-            case "price_low":
-                services = serviceRepository.findByCategoryIdAndIsActiveTrueOrderByPriceAsc(categoryId);
-                break;
-            case "price_high":
-                services = serviceRepository.findByCategoryIdAndIsActiveTrueOrderByPriceDesc(categoryId);
-                break;
-            case "newest":
-            default:
-                services = serviceRepository.findByCategoryIdAndIsActiveTrueOrderByCreatedAtDesc(categoryId);
-                break;
-        }
-
-        return services.stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+        return serviceMapper.toResponseList(services);
     }
 
     /**
@@ -151,39 +139,17 @@ public class PublicServiceService {
             case "price_low":
                 return services.stream()
                         .sorted(Comparator.comparing(Service::getPrice))
-                        .collect(Collectors.toList());
+                        .toList();
             case "price_high":
                 return services.stream()
                         .sorted(Comparator.comparing(Service::getPrice).reversed())
-                        .collect(Collectors.toList());
+                        .toList();
             case "newest":
             default:
                 return services.stream()
                         .sorted(Comparator.comparing(Service::getCreatedAt).reversed())
-                        .collect(Collectors.toList());
+                        .toList();
         }
-    }
-
-    /**
-     * Convert Service entity to ServiceResponse DTO
-     */
-    private ServiceResponse convertToResponse(Service service) {
-        return ServiceResponse.builder()
-                .id(service.getId())
-                .providerId(service.getProvider().getId())
-                .providerName(service.getProvider().getFirstName() + " " + service.getProvider().getLastName())
-                .categoryId(service.getCategory().getId())
-                .categoryName(service.getCategory().getName())
-                .title(service.getTitle())
-                .description(service.getDescription())
-                .price(service.getPrice())
-                .durationMinutes(service.getDurationMinutes())
-                .serviceType(service.getServiceType().name())
-                .locationAddress(service.getLocationAddress())
-                .isActive(service.getIsActive())
-                .createdAt(service.getCreatedAt())
-                .updatedAt(service.getUpdatedAt())
-                .build();
     }
 }
 

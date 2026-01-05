@@ -3,6 +3,7 @@ package com.testing.traningproject.service;
 import com.testing.traningproject.exception.BadRequestException;
 import com.testing.traningproject.exception.ForbiddenException;
 import com.testing.traningproject.exception.ResourceNotFoundException;
+import com.testing.traningproject.mapper.SubscriptionMapper;
 import com.testing.traningproject.model.dto.request.SubscribeRequest;
 import com.testing.traningproject.model.dto.response.SubscriptionPlanResponse;
 import com.testing.traningproject.model.dto.response.SubscriptionResponse;
@@ -20,12 +21,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Subscription Service
@@ -41,6 +39,7 @@ public class SubscriptionService {
     private final TransactionRepository transactionRepository;
     private final NotificationService notificationService;
     private final PaymentService paymentService;
+    private final SubscriptionMapper subscriptionMapper; // ✅ MapStruct mapper
 
     /**
      * Get all available subscription plans
@@ -49,10 +48,7 @@ public class SubscriptionService {
     public List<SubscriptionPlanResponse> getAllPlans() {
         log.info("Fetching all active subscription plans");
 
-        return subscriptionPlanRepository.findByIsActiveTrue()
-                .stream()
-                .map(this::convertToPlanResponse)
-                .collect(Collectors.toList());
+        return subscriptionMapper.toPlanResponseList(subscriptionPlanRepository.findByIsActiveTrue());
     }
 
     /**
@@ -153,7 +149,7 @@ public class SubscriptionService {
             "Valid until " + endDate + ". You can now create and manage services."
         );
 
-        return convertToSubscriptionResponse(subscription);
+        return subscriptionMapper.toResponse(subscription);
     }
 
     /**
@@ -166,7 +162,7 @@ public class SubscriptionService {
         Subscription subscription = subscriptionRepository.findActiveSubscriptionByProviderId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("No active subscription found"));
 
-        return convertToSubscriptionResponse(subscription);
+        return subscriptionMapper.toResponse(subscription);
     }
 
     /**
@@ -183,7 +179,7 @@ public class SubscriptionService {
 
         log.info("Auto-renewal cancelled for subscription ID: {}", subscription.getId());
 
-        return convertToSubscriptionResponse(subscription);
+        return subscriptionMapper.toResponse(subscription);
     }
 
     /**
@@ -192,41 +188,6 @@ public class SubscriptionService {
     @Transactional(readOnly = true)
     public boolean hasActiveSubscription(Long userId) {
         return subscriptionRepository.findActiveSubscriptionByProviderId(userId).isPresent();
-    }
-
-    // ==================== methods to convert for Response shape ====================
-
-    private SubscriptionPlanResponse convertToPlanResponse(SubscriptionPlan plan) {
-        return SubscriptionPlanResponse.builder()
-                .id(plan.getId())
-                .name(plan.getName())
-                .description(plan.getDescription())
-                .price(plan.getPrice())
-                .durationDays(plan.getDurationDays())
-                .isActive(plan.getIsActive())
-                .build();
-    }
-
-    private SubscriptionResponse convertToSubscriptionResponse(Subscription subscription) {
-        long daysRemaining = ChronoUnit.DAYS.between(LocalDate.now(), subscription.getEndDate());
-
-        return SubscriptionResponse.builder()
-                .id(subscription.getId())
-                .providerId(subscription.getProvider().getId())
-                .providerName(subscription.getProvider().getFirstName() + " " + subscription.getProvider().getLastName())
-                .providerEmail(subscription.getProvider().getEmail())
-                .planId(subscription.getPlan().getId())
-                .planName(subscription.getPlan().getName())
-                .planPrice(subscription.getPlan().getPrice())
-                .planDurationDays(subscription.getPlan().getDurationDays())
-                .startDate(subscription.getStartDate())
-                .endDate(subscription.getEndDate())
-                .status(subscription.getStatus().name())
-                .autoRenew(subscription.getAutoRenew())
-                .daysRemaining(daysRemaining > 0 ? daysRemaining : 0)
-                .createdAt(subscription.getCreatedAt())
-                .updatedAt(subscription.getUpdatedAt())
-                .build();
     }
 }
 

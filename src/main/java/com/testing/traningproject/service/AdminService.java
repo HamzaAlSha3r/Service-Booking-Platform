@@ -2,6 +2,8 @@ package com.testing.traningproject.service;
 
 import com.testing.traningproject.exception.BadRequestException;
 import com.testing.traningproject.exception.ResourceNotFoundException;
+import com.testing.traningproject.mapper.AdminMapper;
+import com.testing.traningproject.mapper.SubscriptionMapper;
 import com.testing.traningproject.model.dto.request.CreateSubscriptionPlanRequest;
 import com.testing.traningproject.model.dto.request.ProviderApprovalRequest;
 import com.testing.traningproject.model.dto.request.RefundDecisionRequest;
@@ -24,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Service for Admin operations
@@ -45,6 +46,8 @@ public class AdminService {
     private final TransactionRepository transactionRepository;
     private final NotificationService notificationService;
     private final PaymentService paymentService;
+    private final AdminMapper adminMapper; // ✅ MapStruct mapper
+    private final SubscriptionMapper subscriptionMapper; // ✅ MapStruct mapper
 
     /**
      * Get all pending service provider registrations
@@ -53,11 +56,9 @@ public class AdminService {
     public List<PendingProviderResponse> getPendingProviders() {
         log.info("Fetching pending service provider registrations");
 
-        List<User> pendingProviders = userRepository.findByAccountStatus(AccountStatus.PENDING_APPROVAL);
-
-        return pendingProviders.stream()
-                .map(this::convertToPendingProviderResponse)
-                .collect(Collectors.toList());
+        return adminMapper.toPendingProviderResponseList(
+                userRepository.findByAccountStatus(AccountStatus.PENDING_APPROVAL)
+        );
     }
 
     /**
@@ -132,11 +133,9 @@ public class AdminService {
     public List<PendingRefundResponse> getPendingRefunds() {
         log.info("Fetching pending refund requests");
 
-        List<Refund> pendingRefunds = refundRepository.findByStatus(RefundStatus.PENDING);
-
-        return pendingRefunds.stream()
-                .map(this::convertToPendingRefundResponse)
-                .collect(Collectors.toList());
+        return adminMapper.toPendingRefundResponseList(
+                refundRepository.findByStatus(RefundStatus.PENDING)
+        );
     }
 
     /**
@@ -376,7 +375,7 @@ public class AdminService {
 
         log.info("Subscription plan created successfully - ID: {}", plan.getId());
 
-        return convertToSubscriptionPlanResponse(plan);
+        return subscriptionMapper.toPlanResponse(plan);
     }
 
     /**
@@ -408,7 +407,7 @@ public class AdminService {
 
         log.info("Subscription plan updated successfully - ID: {}", planId);
 
-        return convertToSubscriptionPlanResponse(plan);
+        return subscriptionMapper.toPlanResponse(plan);
     }
 
     /**
@@ -441,64 +440,7 @@ public class AdminService {
     public List<SubscriptionPlanResponse> getAllSubscriptionPlans() {
         log.info("Fetching all subscription plans for admin");
 
-        return subscriptionPlanRepository.findAll()
-                .stream()
-                .map(this::convertToSubscriptionPlanResponse)
-                .collect(Collectors.toList());
-    }
-
-    // ==================== methods for convert to Response shape ====================
-
-    private com.testing.traningproject.model.dto.response.SubscriptionPlanResponse convertToSubscriptionPlanResponse(
-            com.testing.traningproject.model.entity.SubscriptionPlan plan) {
-        return com.testing.traningproject.model.dto.response.SubscriptionPlanResponse.builder()
-                .id(plan.getId())
-                .name(plan.getName())
-                .description(plan.getDescription())
-                .price(plan.getPrice())
-                .durationDays(plan.getDurationDays())
-                .isActive(plan.getIsActive())
-                .build();
-    }
-
-    private PendingProviderResponse convertToPendingProviderResponse(User user) {
-        return PendingProviderResponse.builder()
-                .id(user.getId())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .email(user.getEmail())
-                .phone(user.getPhone())
-                .bio(user.getBio())
-                .professionalTitle(user.getProfessionalTitle())
-                .certificateUrl(user.getCertificateUrl())
-                .accountStatus(user.getAccountStatus())
-                .roles(user.getRoles().stream()
-                        .map(role -> role.getName().name())
-                        .collect(Collectors.toSet()))
-                .createdAt(user.getCreatedAt())
-                .build();
-    }
-
-
-    private PendingRefundResponse convertToPendingRefundResponse(Refund refund) {
-        var booking = refund.getBooking();
-        var customer = booking.getCustomer();
-        var service = booking.getService();
-        var provider = service.getProvider();
-
-        return PendingRefundResponse.builder()
-                .id(refund.getId())
-                .bookingId(booking.getId())
-                .customerName(customer.getFirstName() + " " + customer.getLastName())
-                .customerEmail(customer.getEmail())
-                .serviceName(service.getTitle())
-                .providerName(provider.getFirstName() + " " + provider.getLastName())
-                .refundAmount(refund.getRefundAmount())
-                .refundReason(refund.getRefundReason())
-                .status(refund.getStatus())
-                .requestedAt(refund.getRequestedAt())
-                .bookingDate(booking.getBookingDate())
-                .build();
+        return subscriptionMapper.toPlanResponseList(subscriptionPlanRepository.findAll());
     }
 }
 

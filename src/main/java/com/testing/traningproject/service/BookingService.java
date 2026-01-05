@@ -2,6 +2,7 @@ package com.testing.traningproject.service;
 
 import com.testing.traningproject.exception.BadRequestException;
 import com.testing.traningproject.exception.ResourceNotFoundException;
+import com.testing.traningproject.mapper.BookingMapper;
 import com.testing.traningproject.model.dto.request.CancelBookingRequest;
 import com.testing.traningproject.model.dto.request.CreateBookingRequest;
 import com.testing.traningproject.model.dto.response.BookingResponse;
@@ -17,7 +18,6 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Service for Customer Booking operations
@@ -36,6 +36,7 @@ public class BookingService {
     private final RefundRepository refundRepository;
     private final NotificationService notificationService;
     private final PaymentService paymentService;
+    private final BookingMapper bookingMapper; // ✅ MapStruct mapper
 
     /**
      * Create a new booking (BOOKING_PAYMENT transaction)
@@ -153,7 +154,7 @@ public class BookingService {
             " on " + timeSlot.getSlotDate() + " at " + timeSlot.getStartTime()
         );
 
-        return convertToBookingResponse(booking);
+        return bookingMapper.toResponse(booking);
     }
 
     /**
@@ -163,10 +164,7 @@ public class BookingService {
     public List<BookingResponse> getMyBookings(Long customerId) {
         log.info("Fetching all bookings for customer ID: {}", customerId);
 
-        List<Booking> bookings = bookingRepository.findByCustomerId(customerId);
-        return bookings.stream()
-                .map(this::convertToBookingResponse)
-                .collect(Collectors.toList());
+        return bookingMapper.toResponseList(bookingRepository.findByCustomerId(customerId));
     }
 
     /**
@@ -179,7 +177,7 @@ public class BookingService {
         Booking booking = bookingRepository.findByIdAndCustomerId(bookingId, customerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found or access denied"));
 
-        return convertToBookingResponse(booking);
+        return bookingMapper.toResponse(booking);
     }
 
     /**
@@ -325,7 +323,7 @@ public class BookingService {
             " on " + booking.getSlot().getSlotDate() + " has been cancelled."
         );
 
-        return convertToBookingResponse(booking);
+        return bookingMapper.toResponse(booking);
     }
 
     /**
@@ -335,10 +333,7 @@ public class BookingService {
     public List<BookingResponse> getProviderBookings(Long providerId) {
         log.info("Fetching all bookings for provider ID: {}", providerId);
 
-        List<Booking> bookings = bookingRepository.findByProviderId(providerId);
-        return bookings.stream()
-                .map(this::convertToBookingResponse)
-                .collect(Collectors.toList());
+        return bookingMapper.toResponseList(bookingRepository.findByProviderId(providerId));
     }
 
     /**
@@ -401,32 +396,7 @@ public class BookingService {
             " ('" + booking.getService().getTitle() + "') has been processed and will be transferred to your account."
         );
 
-        return convertToBookingResponse(booking);
-    }
-
-    /**
-     * Convert Booking entity to BookingResponse DTO
-     */
-    private BookingResponse convertToBookingResponse(Booking booking) {
-        return BookingResponse.builder()
-                .id(booking.getId())
-                .customerId(booking.getCustomer().getId())
-                .customerName(booking.getCustomer().getFirstName() + " " + booking.getCustomer().getLastName())
-                .serviceId(booking.getService().getId())
-                .serviceTitle(booking.getService().getTitle())
-                .providerName(booking.getService().getProvider().getFirstName() + " " +
-                        booking.getService().getProvider().getLastName())
-                .slotDate(booking.getSlot().getSlotDate())
-                .startTime(booking.getSlot().getStartTime())
-                .endTime(booking.getSlot().getEndTime())
-                .totalPrice(booking.getTotalPrice())
-                .status(booking.getStatus())
-                .cancellationReason(booking.getCancellationReason())
-                .bookingDate(booking.getBookingDate())
-                .cancelledAt(booking.getCancelledAt())
-                .completedAt(booking.getCompletedAt())
-                .createdAt(booking.getCreatedAt())
-                .build();
+        return bookingMapper.toResponse(booking);
     }
 }
 

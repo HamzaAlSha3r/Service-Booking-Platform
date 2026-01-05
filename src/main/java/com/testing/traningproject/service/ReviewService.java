@@ -2,6 +2,7 @@ package com.testing.traningproject.service;
 
 import com.testing.traningproject.exception.BadRequestException;
 import com.testing.traningproject.exception.ResourceNotFoundException;
+import com.testing.traningproject.mapper.ReviewMapper;
 import com.testing.traningproject.model.dto.request.CreateReviewRequest;
 import com.testing.traningproject.model.dto.response.ReviewResponse;
 import com.testing.traningproject.model.entity.Booking;
@@ -18,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Service for Review operations
@@ -33,6 +33,7 @@ public class ReviewService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final ReviewMapper reviewMapper; // ✅ MapStruct mapper
 
     /**
      * Create a new review (only for COMPLETED bookings)
@@ -92,7 +93,7 @@ public class ReviewService {
             (request.getComment() != null ? "\n\nComment: \"" + request.getComment() + "\"" : "")
         );
 
-        return convertToReviewResponse(review);
+        return reviewMapper.toResponse(review);
     }
 
     /**
@@ -107,9 +108,7 @@ public class ReviewService {
                 .orElseThrow(() -> new ResourceNotFoundException("Provider not found"));
 
         List<Review> reviews = reviewRepository.findByProviderId(providerId);
-        return reviews.stream()
-                .map(this::convertToReviewResponse)
-                .collect(Collectors.toList());
+        return reviewMapper.toResponseList(reviews);
     }
 
     /**
@@ -120,25 +119,7 @@ public class ReviewService {
         log.info("Fetching all reviews for service ID: {}", serviceId);
 
         List<Review> reviews = reviewRepository.findByServiceId(serviceId);
-        return reviews.stream()
-                .map(this::convertToReviewResponse)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Convert Review entity to ReviewResponse DTO
-     */
-    private ReviewResponse convertToReviewResponse(Review review) {
-        return ReviewResponse.builder()
-                .id(review.getId())
-                .bookingId(review.getBooking().getId())
-                .serviceTitle(review.getBooking().getService().getTitle())
-                .customerName(review.getBooking().getCustomer().getFirstName() + " " +
-                        review.getBooking().getCustomer().getLastName())
-                .rating(review.getRating())
-                .comment(review.getComment())
-                .createdAt(review.getCreatedAt())
-                .build();
+        return reviewMapper.toResponseList(reviews);
     }
 }
 

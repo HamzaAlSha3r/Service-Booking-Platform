@@ -3,6 +3,8 @@ package com.testing.traningproject.service;
 import com.testing.traningproject.exception.BadRequestException;
 import com.testing.traningproject.exception.ForbiddenException;
 import com.testing.traningproject.exception.ResourceNotFoundException;
+import com.testing.traningproject.mapper.ServiceMapper;
+import com.testing.traningproject.mapper.TimeSlotMapper;
 import com.testing.traningproject.model.dto.request.CreateServiceRequest;
 import com.testing.traningproject.model.dto.request.SetAvailabilityRequest;
 import com.testing.traningproject.model.dto.request.UpdateServiceRequest;
@@ -19,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * management Provider Service
@@ -35,6 +36,8 @@ public class ProviderService {
     private final ProviderAvailabilityRepository providerAvailabilityRepository;
     private final SubscriptionService subscriptionService;
     private final TimeSlotService timeSlotService;
+    private final ServiceMapper serviceMapper; // ✅ MapStruct mapper
+    private final TimeSlotMapper timeSlotMapper; // ✅ MapStruct mapper
 
     /**
      * Create a new service
@@ -84,7 +87,7 @@ public class ProviderService {
 
         log.info("Service created successfully - ID: {}", service.getId());
 
-        return convertToServiceResponse(service);
+        return serviceMapper.toResponse(service);
     }
 
     /**
@@ -141,7 +144,7 @@ public class ProviderService {
 
         log.info("Service updated successfully - ID: {}", serviceId);
 
-        return convertToServiceResponse(service);
+        return serviceMapper.toResponse(service);
     }
 
     /**
@@ -168,10 +171,9 @@ public class ProviderService {
     public List<ServiceResponse> getProviderServices(Long providerId) {
         log.info("Fetching services for provider ID: {}", providerId);
 
-        return serviceRepository.findByProviderIdOrderByCreatedAtDesc(providerId)
-                .stream()
-                .map(this::convertToServiceResponse)
-                .collect(Collectors.toList());
+        return serviceMapper.toResponseList(
+                serviceRepository.findByProviderIdOrderByCreatedAtDesc(providerId)
+        );
     }
 
     // ==================== Availability Management ====================
@@ -233,7 +235,7 @@ public class ProviderService {
             }
         }
 
-        return convertToAvailabilityResponse(availability);
+        return timeSlotMapper.toAvailabilityResponse(availability);
     }
 
     /**
@@ -243,10 +245,9 @@ public class ProviderService {
     public List<ProviderAvailabilityResponse> getProviderAvailability(Long providerId) {
         log.info("Fetching availability for provider ID: {}", providerId);
 
-        return providerAvailabilityRepository.findByProviderIdOrderByDayOfWeekAsc(providerId)
-                .stream()
-                .map(this::convertToAvailabilityResponse)
-                .collect(Collectors.toList());
+        return timeSlotMapper.toAvailabilityResponseList(
+                providerAvailabilityRepository.findByProviderIdOrderByDayOfWeekAsc(providerId)
+        );
     }
 
     /**
@@ -271,42 +272,6 @@ public class ProviderService {
     private boolean timeSlotsOverlap(java.time.LocalTime start1, java.time.LocalTime end1,
                                      java.time.LocalTime start2, java.time.LocalTime end2) {
         return start1.isBefore(end2) && start2.isBefore(end1);
-    }
-
-    // ==================== methods to convert for Response Shape ====================
-
-    private ServiceResponse convertToServiceResponse(com.testing.traningproject.model.entity.Service service) {
-        return ServiceResponse.builder()
-                .id(service.getId())
-                .providerId(service.getProvider().getId())
-                .providerName(service.getProvider().getFirstName() + " " + service.getProvider().getLastName())
-                .providerEmail(service.getProvider().getEmail())
-                .categoryId(service.getCategory().getId())
-                .categoryName(service.getCategory().getName())
-                .title(service.getTitle())
-                .description(service.getDescription())
-                .price(service.getPrice())
-                .durationMinutes(service.getDurationMinutes())
-                .serviceType(service.getServiceType().name())
-                .locationAddress(service.getLocationAddress())
-                .isActive(service.getIsActive())
-                .createdAt(service.getCreatedAt())
-                .updatedAt(service.getUpdatedAt())
-                .build();
-    }
-
-    private ProviderAvailabilityResponse convertToAvailabilityResponse(ProviderAvailability availability) {
-        return ProviderAvailabilityResponse.builder()
-                .id(availability.getId())
-                .providerId(availability.getProvider().getId())
-                .providerName(availability.getProvider().getFirstName() + " " + availability.getProvider().getLastName())
-                .dayOfWeek(availability.getDayOfWeek().name())
-                .startTime(availability.getStartTime())
-                .endTime(availability.getEndTime())
-                .isActive(availability.getIsActive())
-                .createdAt(availability.getCreatedAt())
-                .updatedAt(availability.getUpdatedAt())
-                .build();
     }
 }
 

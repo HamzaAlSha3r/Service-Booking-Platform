@@ -4,10 +4,10 @@ import com.testing.traningproject.exception.BadRequestException;
 import com.testing.traningproject.exception.DuplicateResourceException;
 import com.testing.traningproject.exception.ResourceNotFoundException;
 import com.testing.traningproject.exception.UnauthorizedException;
+import com.testing.traningproject.mapper.UserMapper;
 import com.testing.traningproject.model.dto.response.AuthResponse;
 import com.testing.traningproject.model.dto.request.LoginRequest;
 import com.testing.traningproject.model.dto.request.RegisterRequest;
-import com.testing.traningproject.model.dto.response.UserResponse;
 import com.testing.traningproject.model.entity.Role;
 import com.testing.traningproject.model.entity.User;
 import com.testing.traningproject.model.enums.AccountStatus;
@@ -26,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Handles user registration and login
@@ -41,6 +40,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final UserMapper userMapper; // ✅ MapStruct mapper
 
     /**
      * Register a new user
@@ -98,7 +98,7 @@ public class AuthService {
             log.info("Service provider registered successfully, pending admin approval: {}", savedUser.getEmail());
             return AuthResponse.builder()
                     .message("Registration successful. Your account is pending admin approval.")
-                    .user(mapToUserResponse(savedUser))
+                    .user(userMapper.toResponse(savedUser)) // ✅ Using MapStruct
                     .build();
         }
 
@@ -109,7 +109,7 @@ public class AuthService {
                         savedUser.getPasswordHash(),
                         savedUser.getRoles().stream()
                                 .map(r -> new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + r.getName().name()))
-                                .collect(Collectors.toList())
+                                .toList()
                 );
 
         String token = jwtService.generateToken(userDetails);
@@ -121,7 +121,7 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .expiresIn(jwtService.getJwtExpiration())
-                .user(mapToUserResponse(savedUser))
+                .user(userMapper.toResponse(savedUser)) // ✅ Using MapStruct
                 .build();
     }
 
@@ -169,7 +169,7 @@ public class AuthService {
                         user.getPasswordHash(),
                         user.getRoles().stream()
                                 .map(r -> new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + r.getName().name()))
-                                .collect(Collectors.toList())
+                                .toList()
                 );
 
         String token = jwtService.generateToken(userDetails);
@@ -181,28 +181,7 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .expiresIn(jwtService.getJwtExpiration())
-                .user(mapToUserResponse(user))
-                .build();
-    }
-
-// to map the data send from BE to user with the UserResponse we created it
-    private UserResponse mapToUserResponse(User user) {
-        return UserResponse.builder()
-                .id(user.getId())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .email(user.getEmail())
-                .phone(user.getPhone())
-                .profilePictureUrl(user.getProfilePictureUrl())
-                .bio(user.getBio())
-                .professionalTitle(user.getProfessionalTitle())
-                .certificateUrl(user.getCertificateUrl())
-                .accountStatus(user.getAccountStatus())
-                .roles(user.getRoles().stream()
-                        .map(role -> role.getName().name())
-                        .collect(Collectors.toSet()))
-                .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt())
+                .user(userMapper.toResponse(user)) // ✅ Using MapStruct
                 .build();
     }
 }

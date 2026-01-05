@@ -1,6 +1,7 @@
 package com.testing.traningproject.service;
 
 import com.testing.traningproject.exception.ResourceNotFoundException;
+import com.testing.traningproject.mapper.TimeSlotMapper;
 import com.testing.traningproject.model.dto.response.TimeSlotResponse;
 import com.testing.traningproject.model.entity.ProviderAvailability;
 import com.testing.traningproject.model.entity.TimeSlot;
@@ -18,7 +19,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Time Slot Service
@@ -32,6 +32,7 @@ public class TimeSlotService {
     private final TimeSlotRepository timeSlotRepository;
     private final ServiceRepository serviceRepository;
     private final ProviderAvailabilityRepository providerAvailabilityRepository;
+    private final TimeSlotMapper timeSlotMapper; // ✅ MapStruct mapper
 
     /**
      * Get available time slots for a service (next 30 days)
@@ -55,9 +56,7 @@ public class TimeSlotService {
                         LocalDate.now()
                 );
 
-        return availableSlots.stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+        return timeSlotMapper.toResponseList(availableSlots);
     }
 
     /**
@@ -153,23 +152,6 @@ public class TimeSlotService {
             case SATURDAY -> DayOfWeek.SATURDAY;
             case SUNDAY -> DayOfWeek.SUNDAY;
         };
-    }
-
-    /**
-     * Convert TimeSlot entity to TimeSlotResponse DTO
-     */
-    private TimeSlotResponse convertToResponse(TimeSlot timeSlot) {
-        return TimeSlotResponse.builder()
-                .id(timeSlot.getId())
-                .serviceId(timeSlot.getService().getId())
-                .serviceTitle(timeSlot.getService().getTitle())
-                .slotDate(timeSlot.getSlotDate())
-                .startTime(timeSlot.getStartTime())
-                .endTime(timeSlot.getEndTime())
-                .status(timeSlot.getStatus().name())
-                .createdAt(timeSlot.getCreatedAt())
-                .updatedAt(timeSlot.getUpdatedAt())
-                .build();
     }
 }
 

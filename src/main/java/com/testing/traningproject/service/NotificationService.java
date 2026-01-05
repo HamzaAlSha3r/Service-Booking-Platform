@@ -1,6 +1,7 @@
 package com.testing.traningproject.service;
 
 import com.testing.traningproject.exception.ResourceNotFoundException;
+import com.testing.traningproject.mapper.NotificationMapper;
 import com.testing.traningproject.model.dto.response.NotificationResponse;
 import com.testing.traningproject.model.entity.Notification;
 import com.testing.traningproject.model.entity.User;
@@ -13,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Notification Service
@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final NotificationMapper notificationMapper; // ✅ MapStruct mapper
 
     @Transactional
     public void createNotification(User user, NotificationType type, String title, String message) {
@@ -46,9 +47,7 @@ public class NotificationService {
     @Transactional(readOnly = true)
     public List<NotificationResponse> getUserNotifications(User user) {
         List<Notification> notifications = notificationRepository.findByUserOrderByCreatedAtDesc(user);
-        return notifications.stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+        return notificationMapper.toResponseList(notifications);
     }
 
     /**
@@ -57,9 +56,7 @@ public class NotificationService {
     @Transactional(readOnly = true)
     public List<NotificationResponse> getUnreadNotifications(User user) {
         List<Notification> notifications = notificationRepository.findByUserAndIsReadFalseOrderByCreatedAtDesc(user);
-        return notifications.stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+        return notificationMapper.toResponseList(notifications);
     }
 
     /**
@@ -90,7 +87,7 @@ public class NotificationService {
             log.info("Notification {} marked as read by user {}", notificationId, user.getEmail());
         }
 
-        return convertToResponse(notification);
+        return notificationMapper.toResponse(notification);
     }
 
     /**
@@ -125,21 +122,6 @@ public class NotificationService {
 
         notificationRepository.delete(notification);
         log.info("Notification {} deleted by user {}", notificationId, user.getEmail());
-    }
-
-    /**
-     * تحويل Notification إلى NotificationResponse
-     */
-    private NotificationResponse convertToResponse(Notification notification) {
-        return NotificationResponse.builder()
-                .id(notification.getId())
-                .notificationType(notification.getNotificationType())
-                .title(notification.getTitle())
-                .message(notification.getMessage())
-                .isRead(notification.getIsRead())
-                .readAt(notification.getReadAt())
-                .createdAt(notification.getCreatedAt())
-                .build();
     }
 }
 
