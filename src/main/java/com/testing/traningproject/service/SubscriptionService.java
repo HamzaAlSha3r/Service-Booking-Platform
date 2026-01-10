@@ -38,7 +38,7 @@ public class SubscriptionService {
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
     private final NotificationService notificationService;
-    private final PaymentService paymentService;
+    private final com.testing.traningproject.service.payment.PaymentStrategyFactory paymentStrategyFactory;
     private final SubscriptionMapper subscriptionMapper; // ✅ MapStruct mapper
 
     /**
@@ -106,16 +106,26 @@ public class SubscriptionService {
 
         subscription = subscriptionRepository.save(subscription);
 
-        // Process payment via PaymentService
+        // Process payment via Strategy Pattern
         String paymentTransactionId;
+        String maskedCard;
         try {
-            // Validate and process payment
-            paymentTransactionId = paymentService.processPayment(
-                request.getPaymentCard(),
+            // Get payment strategy based on payment method
+            var paymentStrategy = paymentStrategyFactory.getStrategy(request.getPaymentMethod());
+
+            // Process payment
+            paymentTransactionId = paymentStrategy.processPayment(
                 plan.getPrice(),
+                request.getPaymentCard(),
                 "Subscription payment for: " + plan.getName()
             );
-            log.info("Subscription payment processed successfully - Gateway TXN ID: {}", paymentTransactionId);
+
+            // Mask card number for storage
+            maskedCard = request.getPaymentCard().getCardNumber().substring(0, 4) + "********" +
+                        request.getPaymentCard().getCardNumber().substring(request.getPaymentCard().getCardNumber().length() - 4);
+
+            log.info("Subscription payment processed successfully via {} - Gateway TXN ID: {}",
+                    paymentStrategy.getPaymentMethodName(), paymentTransactionId);
         } catch (Exception e) {
             // Payment failed - delete subscription and throw error
             subscriptionRepository.delete(subscription);
@@ -128,8 +138,7 @@ public class SubscriptionService {
                 .subscription(subscription)
                 .transactionType(com.testing.traningproject.model.enums.TransactionType.SUBSCRIPTION_PAYMENT)
                 .amount(plan.getPrice())
-                .paymentMethod(request.getPaymentMethod() + " - " +
-                              paymentService.maskCardNumber(request.getPaymentCard().getCardNumber()))
+                .paymentMethod(request.getPaymentMethod() + " - " + maskedCard)
                 .status(TransactionStatus.SUCCESS)
                 .paymentGatewayTransactionId(paymentTransactionId)
                 .createdAt(LocalDateTime.now())

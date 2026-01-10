@@ -673,6 +673,398 @@ Content-Type: application/json
   "comment": "Premature review"
 }
 
+### ============================================================================
+### PHASE 5: PAYMENT STRATEGY PATTERN TESTING
+### Testing Stripe & PayPal Payment Methods
+### ============================================================================
+
+### ---------- 5.1 Test Subscription with STRIPE ----------
+# First logout and login as a new provider
+POST {{baseUrl}}/api/auth/logout
+
+### Register new provider for Stripe testing
+# @name register-stripe-provider
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "Stripe",
+  "lastName": "TestProvider",
+  "email": "stripe.test@example.com",
+  "password": "Provider@123",
+  "phone": "+1111111111",
+  "role": "SERVICE_PROVIDER",
+  "bio": "Testing Stripe payments",
+  "professionalTitle": "Stripe Tester",
+  "certificateUrl": "https://example.com/stripe-cert.pdf"
+}
+
+### Login as Admin to approve
+POST {{baseUrl}}/api/auth/logout
+
+###
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+### Get pending providers and approve the new one
+GET {{baseUrl}}/api/admin/providers/pending
+
+### Approve (replace {id} with actual ID from response)
+PUT {{baseUrl}}/api/admin/providers/{id}/approve
+# Cookie sent automatically
+Content-Type: application/json
+
+{
+  "adminNotes": "Approved for Stripe payment testing"
+}
+
+### Logout and login as the Stripe provider
+POST {{baseUrl}}/api/auth/logout
+
+###
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "stripe.test@example.com",
+  "password": "Provider@123"
+}
+
+### Subscribe using STRIPE payment method
+# @name subscribe-stripe
+POST {{baseUrl}}/api/subscriptions/subscribe
+# Cookie sent automatically
+Content-Type: application/json
+
+{
+  "planId": 1,
+  "paymentMethod": "stripe",
+  "autoRenew": true,
+  "paymentCard": {
+    "cardNumber": "4242424242424242",
+    "cardHolderName": "Stripe Test Provider",
+    "expiryMonth": "12",
+    "expiryYear": "2028",
+    "cvv": "123",
+    "billingAddress": "123 Stripe Street, CA"
+  }
+}
+
+### Check transaction (should show STRIPE_ prefix in gateway transaction ID)
+POST {{baseUrl}}/api/auth/logout
+
+###
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+###
+GET {{baseUrl}}/api/admin/transactions
+
+### ---------- 5.2 Test Subscription with PAYPAL ----------
+POST {{baseUrl}}/api/auth/logout
+
+### Register new provider for PayPal testing
+# @name register-paypal-provider
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "firstName": "PayPal",
+  "lastName": "TestProvider",
+  "email": "paypal.test@example.com",
+  "password": "Provider@123",
+  "phone": "+2222222222",
+  "role": "SERVICE_PROVIDER",
+  "bio": "Testing PayPal payments",
+  "professionalTitle": "PayPal Tester",
+  "certificateUrl": "https://example.com/paypal-cert.pdf"
+}
+
+### Login as Admin
+POST {{baseUrl}}/api/auth/logout
+
+###
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+### Get pending and approve PayPal provider
+GET {{baseUrl}}/api/admin/providers/pending
+
+### Approve (replace {id} with actual ID)
+PUT {{baseUrl}}/api/admin/providers/{id}/approve
+# Cookie sent automatically
+Content-Type: application/json
+
+{
+  "adminNotes": "Approved for PayPal payment testing"
+}
+
+### Logout and login as PayPal provider
+POST {{baseUrl}}/api/auth/logout
+
+###
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "paypal.test@example.com",
+  "password": "Provider@123"
+}
+
+### Subscribe using PAYPAL payment method
+# @name subscribe-paypal
+POST {{baseUrl}}/api/subscriptions/subscribe
+# Cookie sent automatically
+Content-Type: application/json
+
+{
+  "planId": 1,
+  "paymentMethod": "paypal",
+  "autoRenew": true,
+  "paymentCard": {
+    "cardNumber": "5555555555554444",
+    "cardHolderName": "PayPal Test Provider",
+    "expiryMonth": "06",
+    "expiryYear": "2029",
+    "cvv": "456",
+    "billingAddress": "456 PayPal Avenue, NY"
+  }
+}
+
+### Check transaction (should show PAYPAL_ prefix)
+POST {{baseUrl}}/api/auth/logout
+
+###
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+###
+GET {{baseUrl}}/api/admin/transactions
+
+### ---------- 5.3 Test Booking with STRIPE ----------
+POST {{baseUrl}}/api/auth/logout
+
+### Login as customer
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{customerEmail}}",
+  "password": "{{customerPassword}}"
+}
+
+### Create booking with STRIPE payment
+# @name booking-stripe
+POST {{baseUrl}}/api/customer/bookings
+# Cookie sent automatically
+Content-Type: application/json
+
+{
+  "serviceId": 1,
+  "slotId": 1,
+  "paymentMethod": "stripe",
+  "paymentCard": {
+    "cardNumber": "4242424242424242",
+    "cardHolderName": "Test Customer",
+    "expiryMonth": "03",
+    "expiryYear": "2027",
+    "cvv": "789",
+    "billingAddress": "789 Customer Lane, TX"
+  }
+}
+
+### ---------- 5.4 Test Booking with PAYPAL ----------
+POST {{baseUrl}}/api/customer/bookings
+# Cookie sent automatically
+Content-Type: application/json
+
+{
+  "serviceId": 2,
+  "slotId": 10,
+  "paymentMethod": "paypal",
+  "paymentCard": {
+    "cardNumber": "5555555555554444",
+    "cardHolderName": "Test Customer PayPal",
+    "expiryMonth": "09",
+    "expiryYear": "2028",
+    "cvv": "321",
+    "billingAddress": "789 Customer Lane, TX"
+  }
+}
+
+### Check transactions to see STRIPE_ and PAYPAL_ prefixes
+POST {{baseUrl}}/api/auth/logout
+
+###
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+###
+GET {{baseUrl}}/api/admin/transactions
+
+### ---------- 5.5 Test REFUND with Original Payment Method ----------
+### Cancel a booking to trigger refund
+POST {{baseUrl}}/api/auth/logout
+
+###
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{customerEmail}}",
+  "password": "{{customerPassword}}"
+}
+
+### Cancel booking (triggers auto-refund if <24hrs, or manual refund request)
+PUT {{baseUrl}}/api/customer/bookings/{bookingId}/cancel
+# Cookie sent automatically
+Content-Type: application/json
+
+{
+  "cancellationReason": "Testing refund with original payment gateway"
+}
+
+### Check if refund was auto-processed or needs admin approval
+GET {{baseUrl}}/api/customer/bookings
+
+### If manual approval needed, login as admin
+POST {{baseUrl}}/api/auth/logout
+
+###
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+### Get pending refunds
+GET {{baseUrl}}/api/admin/refunds/pending
+
+### Approve refund (replace {id} with actual refund ID)
+PUT {{baseUrl}}/api/admin/refunds/{id}/approve
+# Cookie sent automatically
+Content-Type: application/json
+
+{
+  "adminNotes": "Refund approved - will be processed via original payment gateway"
+}
+
+### Check transactions - should see STRIPE_REFUND_ or PAYPAL_REFUND_
+GET {{baseUrl}}/api/admin/transactions
+
+### ---------- 5.6 Test PAYOUT to Provider ----------
+### Login as provider to complete a booking
+POST {{baseUrl}}/api/auth/logout
+
+###
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{providerEmail}}",
+  "password": "{{providerPassword}}"
+}
+
+### Get provider bookings
+GET {{baseUrl}}/api/provider/bookings
+
+### Complete a booking (triggers PAYOUT transaction)
+PUT {{baseUrl}}/api/provider/bookings/{bookingId}/complete
+# Cookie sent automatically
+
+### Check transactions as admin - should see STRIPE_PAYOUT_ or PAYPAL_PAYOUT_
+POST {{baseUrl}}/api/auth/logout
+
+###
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+###
+GET {{baseUrl}}/api/admin/transactions
+
+### ---------- 5.7 Test Invalid Payment Method (Expect Error) ----------
+POST {{baseUrl}}/api/auth/logout
+
+###
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{customerEmail}}",
+  "password": "{{customerPassword}}"
+}
+
+### Try to book with unsupported payment method
+POST {{baseUrl}}/api/customer/bookings
+# Cookie sent automatically
+Content-Type: application/json
+
+{
+  "serviceId": 1,
+  "slotId": 20,
+  "paymentMethod": "bitcoin",
+  "paymentCard": {
+    "cardNumber": "4242424242424242",
+    "cardHolderName": "Test",
+    "expiryMonth": "12",
+    "expiryYear": "2027",
+    "cvv": "123",
+    "billingAddress": "Test Address"
+  }
+}
+### Expected: 400 Bad Request - "Unsupported payment method: bitcoin. Supported methods: stripe, paypal, card"
+
+### ---------- 5.8 Test 'card' Alias (Should Use Stripe) ----------
+POST {{baseUrl}}/api/customer/bookings
+# Cookie sent automatically
+Content-Type: application/json
+
+{
+  "serviceId": 3,
+  "slotId": 25,
+  "paymentMethod": "card",
+  "paymentCard": {
+    "cardNumber": "4242424242424242",
+    "cardHolderName": "Card Alias Test",
+    "expiryMonth": "12",
+    "expiryYear": "2027",
+    "cvv": "123",
+    "billingAddress": "Test Address"
+  }
+}
+### Expected: Success with STRIPE_ prefix (card is alias for stripe)
 
 ### ============================================================================
 ### END OF API TESTING FILE

@@ -35,7 +35,7 @@ public class BookingService {
     private final TransactionRepository transactionRepository;
     private final RefundRepository refundRepository;
     private final NotificationService notificationService;
-    private final PaymentService paymentService;
+    private final com.testing.traningproject.service.payment.PaymentStrategyFactory paymentStrategyFactory;
     private final BookingMapper bookingMapper; // ✅ MapStruct mapper
 
     /**
@@ -87,16 +87,26 @@ public class BookingService {
         booking = bookingRepository.save(booking);
         log.info("Booking created with ID: {} - Status: PENDING", booking.getId());
 
-        // Process BOOKING_PAYMENT transaction via Payment Service
+        // Process BOOKING_PAYMENT transaction via Strategy Pattern
         String paymentTransactionId;
+        String maskedCard;
         try {
-            // Validate and process payment using PaymentService
-            paymentTransactionId = paymentService.processPayment(
-                request.getPaymentCard(),
+            // Get payment strategy based on payment method
+            var paymentStrategy = paymentStrategyFactory.getStrategy(request.getPaymentMethod());
+
+            // Process payment
+            paymentTransactionId = paymentStrategy.processPayment(
                 service.getPrice(),
+                request.getPaymentCard(),
                 "Booking payment for: " + service.getTitle()
             );
-            log.info("Payment processed successfully - Gateway TXN ID: {}", paymentTransactionId);
+
+            // Mask card number for storage
+            maskedCard = request.getPaymentCard().getCardNumber().substring(0, 4) + "********" +
+                        request.getPaymentCard().getCardNumber().substring(request.getPaymentCard().getCardNumber().length() - 4);
+
+            log.info("Payment processed successfully via {} - Gateway TXN ID: {}",
+                    paymentStrategy.getPaymentMethodName(), paymentTransactionId);
         } catch (Exception e) {
             // Payment failed - delete booking and throw error
             bookingRepository.delete(booking);
@@ -111,8 +121,7 @@ public class BookingService {
                 .booking(booking)
                 .transactionType(TransactionType.BOOKING_PAYMENT)
                 .amount(service.getPrice())
-                .paymentMethod(request.getPaymentMethod() + " - " +
-                              paymentService.maskCardNumber(request.getPaymentCard().getCardNumber()))
+                .paymentMethod(request.getPaymentMethod() + " - " + maskedCard)
                 .status(TransactionStatus.SUCCESS)
                 .paymentGatewayTransactionId(paymentTransactionId)
                 .createdAt(LocalDateTime.now())
@@ -259,12 +268,24 @@ public class BookingService {
             );
 
             String refundTransactionId;
+            String paymentMethodUsed = "stripe"; // Default
             try {
-                // Process refund via PaymentService
-                refundTransactionId = paymentService.processRefund(
+                // Extract payment method from original transaction
+                if (originalTransaction != null && originalTransaction.getPaymentGatewayTransactionId() != null) {
+                    if (originalTransaction.getPaymentGatewayTransactionId().startsWith("PAYPAL_")) {
+                        paymentMethodUsed = "paypal";
+                    }
+                }
+
+                // Get payment strategy and process refund
+                var paymentStrategy = paymentStrategyFactory.getStrategy(paymentMethodUsed);
+                refundTransactionId = paymentStrategy.processRefund(
                     originalTransaction != null ? originalTransaction.getPaymentGatewayTransactionId() : "N/A",
                     refundAmount
                 );
+
+                log.info("Auto-refund processed successfully via {} - Refund ID: {}",
+                        paymentStrategy.getPaymentMethodName(), refundTransactionId);
             } catch (Exception e) {
                 log.error("Refund processing failed: {}", e.getMessage());
                 refundTransactionId = "REFUND_FAILED_" + System.currentTimeMillis();
@@ -359,15 +380,43 @@ public class BookingService {
         bookingRepository.save(booking);
         log.info("Booking ID: {} marked as COMPLETED", bookingId);
 
-        // Create PAYOUT transaction for provider
-        String payoutId = "PAYOUT_" + System.currentTimeMillis() + "_" + providerId;
+        // Process PAYOUT transaction for provider using Strategy Pattern
+        String payoutId;
+        String paymentMethodUsed = "stripe"; // Default
+        try {
+            // Get original booking payment transaction to determine payment method
+            Transaction originalTransaction = transactionRepository.findByBookingIdAndTransactionType(
+                booking.getId(),
+                TransactionType.BOOKING_PAYMENT
+            );
+
+            if (originalTransaction != null && originalTransaction.getPaymentGatewayTransactionId() != null) {
+                if (originalTransaction.getPaymentGatewayTransactionId().startsWith("PAYPAL_")) {
+                    paymentMethodUsed = "paypal";
+                }
+            }
+
+            // Get payment strategy and process payout
+            var paymentStrategy = paymentStrategyFactory.getStrategy(paymentMethodUsed);
+            payoutId = paymentStrategy.processPayout(
+                booking.getTotalPrice(),
+                booking.getService().getProvider().getEmail(),
+                "Payout for completed booking: " + booking.getService().getTitle()
+            );
+
+            log.info("Payout processed successfully via {} - Payout ID: {} for provider: {}",
+                    paymentStrategy.getPaymentMethodName(), payoutId, booking.getService().getProvider().getEmail());
+        } catch (Exception e) {
+            log.error("Payout processing failed: {}", e.getMessage());
+            payoutId = "PAYOUT_FAILED_" + System.currentTimeMillis() + "_" + providerId;
+        }
 
         Transaction payout = Transaction.builder()
                 .user(booking.getService().getProvider())
                 .booking(booking)
                 .transactionType(TransactionType.PAYOUT)
                 .amount(booking.getTotalPrice())
-                .paymentMethod("Platform Payout")
+                .paymentMethod("Platform Payout via " + paymentMethodUsed)
                 .status(TransactionStatus.SUCCESS)
                 .paymentGatewayTransactionId(payoutId)
                 .createdAt(LocalDateTime.now())

@@ -45,7 +45,7 @@ public class AdminService {
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
     private final NotificationService notificationService;
-    private final PaymentService paymentService;
+    private final com.testing.traningproject.service.payment.PaymentStrategyFactory paymentStrategyFactory;
     private final AdminMapper adminMapper; // ✅ MapStruct mapper
     private final SubscriptionMapper subscriptionMapper; // ✅ MapStruct mapper
 
@@ -164,12 +164,24 @@ public class AdminService {
             );
 
         String refundTransactionId;
+        String paymentMethodUsed = "stripe"; // Default
         try {
-            // Process refund via PaymentService
-            refundTransactionId = paymentService.processRefund(
+            // Extract payment method from original transaction
+            if (originalTransaction != null && originalTransaction.getPaymentGatewayTransactionId() != null) {
+                if (originalTransaction.getPaymentGatewayTransactionId().startsWith("PAYPAL_")) {
+                    paymentMethodUsed = "paypal";
+                }
+            }
+
+            // Get payment strategy and process refund
+            var paymentStrategy = paymentStrategyFactory.getStrategy(paymentMethodUsed);
+            refundTransactionId = paymentStrategy.processRefund(
                 originalTransaction != null ? originalTransaction.getPaymentGatewayTransactionId() : "N/A",
                 refund.getRefundAmount()
             );
+
+            log.info("Refund processed successfully via {} - Refund ID: {}",
+                    paymentStrategy.getPaymentMethodName(), refundTransactionId);
         } catch (Exception e) {
             log.error("Refund processing failed: {}", e.getMessage());
             refundTransactionId = "REFUND_FAILED_" + System.currentTimeMillis();
