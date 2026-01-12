@@ -8,14 +8,8 @@ import com.testing.traningproject.model.dto.request.CreateSubscriptionPlanReques
 import com.testing.traningproject.model.dto.request.ProviderApprovalRequest;
 import com.testing.traningproject.model.dto.request.RefundDecisionRequest;
 import com.testing.traningproject.model.dto.request.UpdateSubscriptionPlanRequest;
-import com.testing.traningproject.model.dto.response.AdminStatsResponse;
-import com.testing.traningproject.model.dto.response.PendingProviderResponse;
-import com.testing.traningproject.model.dto.response.PendingRefundResponse;
-import com.testing.traningproject.model.dto.response.SubscriptionPlanResponse;
-import com.testing.traningproject.model.entity.Refund;
-import com.testing.traningproject.model.entity.SubscriptionPlan;
-import com.testing.traningproject.model.entity.Transaction;
-import com.testing.traningproject.model.entity.User;
+import com.testing.traningproject.model.dto.response.*;
+import com.testing.traningproject.model.entity.*;
 import com.testing.traningproject.model.enums.AccountStatus;
 import com.testing.traningproject.model.enums.RefundStatus;
 import com.testing.traningproject.repository.*;
@@ -48,6 +42,8 @@ public class AdminService {
     private final com.testing.traningproject.service.payment.PaymentStrategyFactory paymentStrategyFactory;
     private final AdminMapper adminMapper; // ✅ MapStruct mapper
     private final SubscriptionMapper subscriptionMapper; // ✅ MapStruct mapper
+    private final com.testing.traningproject.mapper.ServiceMapper serviceMapper; // ✅ MapStruct mapper
+    private final com.testing.traningproject.mapper.BookingMapper bookingMapper; // ✅ MapStruct mapper
 
     /**
      * Get all pending service provider registrations
@@ -453,6 +449,61 @@ public class AdminService {
         log.info("Fetching all subscription plans for admin");
 
         return subscriptionMapper.toPlanResponseList(subscriptionPlanRepository.findAll());
+    }
+
+    /**
+     * Get all services with their bookings (Admin view)
+     */
+    @Transactional(readOnly = true)
+    public List<ServiceWithBookingsResponse> getAllServicesWithBookings() {
+        log.info("Admin: Fetching all services with their bookings");
+
+        // Get all services
+        List<com.testing.traningproject.model.entity.Service> allservices = serviceRepository.findAll();
+
+        // Get all bookings grouped by service
+        List<Booking> allBookings = bookingRepository.findAllBookingForService();
+
+        // Group bookings by service ID
+        java.util.Map<Long, List<Booking>> bookingsByService =
+            allBookings.stream()
+                .collect(java.util.stream.Collectors.groupingBy(b -> b.getService().getId()));
+
+        // Build response
+        return allservices.stream()
+            .map(service -> {
+                List<Booking> serviceBookings =
+                    bookingsByService.getOrDefault(service.getId(), java.util.Collections.emptyList());
+
+                // Convert service to response using MapStruct
+                ServiceWithBookingsResponse response = serviceMapper.toServiceWithBookingsResponse(service);
+
+                // Convert bookings using MapStruct
+                List<BookingResponse> bookingResponses = bookingMapper.toResponseList(serviceBookings);
+
+                // Calculate statistics
+                long totalBookings = serviceBookings.size();
+                long completedBookings = serviceBookings.stream()
+                    .filter(b -> b.getStatus() == com.testing.traningproject.model.enums.BookingStatus.COMPLETED)
+                    .count();
+                long cancelledBookings = serviceBookings.stream()
+                    .filter(b -> b.getStatus() == com.testing.traningproject.model.enums.BookingStatus.CANCELLED)
+                    .count();
+                java.math.BigDecimal totalRevenue = serviceBookings.stream()
+                    .filter(b -> b.getStatus() == com.testing.traningproject.model.enums.BookingStatus.COMPLETED)
+                    .map(Booking::getTotalPrice)
+                    .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+                // Set bookings and statistics
+                response.setBookings(bookingResponses); // enter the booking for the response
+                response.setTotalBookings(totalBookings);
+                response.setCompletedBookings(completedBookings);
+                response.setCancelledBookings(cancelledBookings);
+                response.setTotalRevenue(totalRevenue);
+
+                return response;
+            })
+            .collect(java.util.stream.Collectors.toList());
     }
 }
 

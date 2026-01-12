@@ -1,27 +1,22 @@
 ###############################################################################
 # TRAINING PROJECT - API TESTING FILE
-# 🍪 Cookie-Based Authentication - No manual token management needed!
-#
 # HOW TO USE:
 # 1. Login once (Admin/Customer/Provider)
 # 2. Cookie is saved automatically by HTTP client
 # 3. All subsequent requests use the cookie automatically
 # 4. To switch user: Logout → Login with different account
 ###############################################################################
-
 ### Variables
 @baseUrl = http://localhost:8081
 @adminEmail = admin@trainingproject.com
 @adminPassword = Admin@12345
 @customerEmail = customer2@example.com
 @customerPassword = Customer@123
-@providerEmail = provider2232@example.com
+@providerEmail = provider223242@example.com
 @providerPassword = Provider@123
-
 ### ============================================================================
 ### 🔐 STEP 1: LOGIN (Choose One - Cookie Will Be Saved Automatically)
 ### ============================================================================
-
 ### ---------- Login as ADMIN ----------
 # @name login-admin
 POST {{baseUrl}}/api/auth/login
@@ -32,7 +27,11 @@ Content-Type: application/json
   "password": "{{adminPassword}}"
 }
 
-### ---------- Login as CUSTOMER ----------
+### --Get All Services with Bookings
+GET {{baseUrl}}/api/admin/services/all-bookings
+
+
+### ---------- Login as CUSTOMER ---------
 # @name login-customer
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
@@ -41,8 +40,7 @@ Content-Type: application/json
   "email": "{{customerEmail}}",
   "password": "{{customerPassword}}"
 }
-
-### ---------- Login as SERVICE PROVIDER ----------
+### ---------- Login as SERVICE PROVIDER -------
 # @name login-provider
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
@@ -51,21 +49,19 @@ Content-Type: application/json
   "email": "{{providerEmail}}",
   "password": "{{providerPassword}}"
 }
-
 ### ---------- LOGOUT (Clear Cookies) ----------
 # @name logout
 POST {{baseUrl}}/api/auth/logout
-
 ### ---------- REFRESH TOKEN (Renew Access Token) ----------
 ### Use this when you get 403 Forbidden (token expired)
 ### Refresh Token (30 days) will auto-renew Access Token (7 days)
 # @name refresh-token
 POST {{baseUrl}}/api/auth/refresh
 # Cookie sent automatically (refreshToken)
-
 ### ============================================================================
 ### PHASE 1: AUTHENTICATION & USER MANAGEMENT
 ### ============================================================================
+
 ### ---------- 1.1 Register Customer ----------
 # @name register-customer
 POST {{baseUrl}}/api/auth/register
@@ -142,7 +138,7 @@ GET {{baseUrl}}/api/admin/providers/pending
 
 ### ---------- 2.2 Approve Service Provider ----------
 # @name approve-provider
-PUT {{baseUrl}}/api/admin/providers/12/approve
+PUT {{baseUrl}}/api/admin/providers/16/approve
 Content-Type: application/json
 
 {
@@ -205,7 +201,7 @@ Content-Type: application/json
 }
 
 ### ---------- 2.9 Delete Category (Will fail if services exist) ----------
-DELETE {{baseUrl}}/api/admin/categories/4
+DELETE {{baseUrl}}/api/admin/categories/7
 
 ### ---------- 2.10 Create Subscription Plan: Basic ----------
 # @name create-plan-basic
@@ -249,7 +245,7 @@ PUT {{baseUrl}}/api/admin/subscription-plans/1
 Content-Type: application/json
 
 {
-  "price": 24.99,
+  "price": 150.00 ,
   "description": "Starter plan - 1 month access (LIMITED OFFER!)"
 }
 
@@ -278,7 +274,8 @@ Content-Type: application/json
   "adminNotes": "Service already completed. Refund not applicable."
 }
 
-### ---------- 2.20 Access Admin Endpoint as Customer (Expect 403) ----------
+
+### ---------- 2.21 Access Admin Endpoint as Customer (Expect 403) ----------
 GET {{baseUrl}}/api/admin/stats
 # Cookie sent automatically
 
@@ -299,7 +296,7 @@ POST {{baseUrl}}/api/subscriptions/subscribe
 Content-Type: application/json
 
 {
-  "planId": 2,
+  "planId": 3,
   "paymentMethod": "card",
   "paymentCard": {
     "cardNumber": "4242424242424242",
@@ -370,7 +367,7 @@ GET {{baseUrl}}/api/provider/services
 # Cookie sent automatically
 
 ### ---------- 3.9 Update Service ----------
-PUT {{baseUrl}}/api/provider/services/8
+PUT {{baseUrl}}/api/provider/services/11
 # Cookie sent automatically
 Content-Type: application/json
 
@@ -380,7 +377,7 @@ Content-Type: application/json
 }
 
 ### ---------- 3.10 Delete Service ----------
-DELETE {{baseUrl}}/api/provider/services/4
+DELETE {{baseUrl}}/api/provider/services/9
 # Cookie sent automatically
 
 ### ---------- 3.11 Set Availability: Monday ----------
@@ -445,7 +442,7 @@ Content-Type: application/json
 ###   1. Delete old availability: DELETE /api/provider/availability/{id}
 ###   2. Create new availability: POST /api/provider/availability (same times)
 ###   → This regenerates slots with correct duration!
-DELETE {{baseUrl}}/api/provider/availability/10
+DELETE {{baseUrl}}/api/provider/availability/14
 # Cookie sent automatically
 
 ### ---------- 3.16a Get My Time Slots (All Services) ----------
@@ -453,11 +450,11 @@ GET {{baseUrl}}/api/provider/time-slots
 # Cookie sent automatically
 
 ### ---------- 3.16b Get Time Slots for Specific Service ----------
-GET {{baseUrl}}/api/provider/time-slots?serviceId=8
+GET {{baseUrl}}/api/provider/time-slots?serviceId=11
 # Cookie sent automatically
 
 ### ---------- 3.16c Get Time Slots with Date Range ----------
-GET {{baseUrl}}/api/provider/time-slots?fromDate=2026-01-05&toDate=2026-01-12
+GET {{baseUrl}}/api/provider/time-slots?fromDate=2026-01-01&toDate=2026-01-10
 # Cookie sent automatically
 
 ### ---------- 3.16d Get Only BLOCKED Slots ----------
@@ -467,11 +464,11 @@ GET {{baseUrl}}/api/provider/time-slots?status=BLOCKED
 ### ---------- 3.16e Block Specific Time Slot ----------
 ### ✅ BETTER SOLUTION: Block ONE slot instead of deleting entire day!
 ### Example: Block Monday 05/01/2026 11:00-12:00 only
-PUT {{baseUrl}}/api/provider/time-slots/152/block
+PUT {{baseUrl}}/api/provider/time-slots/194/block
 # Cookie sent automatically
 
 ### ---------- 3.16f Unblock Time Slot (Make Available Again) ----------
-PUT {{baseUrl}}/api/provider/time-slots/127/unblock
+PUT {{baseUrl}}/api/provider/time-slots/194/unblock
 # Cookie sent automatically
 
 ### ---------- 3.17 Get My Bookings ----------
@@ -484,10 +481,6 @@ PUT {{baseUrl}}/api/provider/bookings/1/complete
 
 ### ---------- 3.19 Get My Reviews ----------
 GET {{baseUrl}}/api/provider/reviews
-# Cookie sent automatically
-
-### ---------- 3.20 Get Provider Statistics ----------
-GET {{baseUrl}}/api/provider/stats
 # Cookie sent automatically
 
 
@@ -563,8 +556,8 @@ POST {{baseUrl}}/api/customer/bookings
 Content-Type: application/json
 
 {
-  "serviceId": 8,
-  "slotId": 156,
+  "serviceId": 10,
+  "slotId": 194,
   "paymentMethod": "card",
   "paymentCard": {
     "cardNumber": "4242424242424242",
@@ -715,7 +708,7 @@ Content-Type: application/json
 GET {{baseUrl}}/api/admin/providers/pending
 
 ### Approve (replace {id} with actual ID from response)
-PUT {{baseUrl}}/api/admin/providers/{id}/approve
+PUT {{baseUrl}}/api/admin/providers/14/approve
 # Cookie sent automatically
 Content-Type: application/json
 
@@ -806,7 +799,7 @@ Content-Type: application/json
 GET {{baseUrl}}/api/admin/providers/pending
 
 ### Approve (replace {id} with actual ID)
-PUT {{baseUrl}}/api/admin/providers/{id}/approve
+PUT {{baseUrl}}/api/admin/providers/15/approve
 # Cookie sent automatically
 Content-Type: application/json
 
@@ -880,8 +873,8 @@ POST {{baseUrl}}/api/customer/bookings
 Content-Type: application/json
 
 {
-  "serviceId": 1,
-  "slotId": 1,
+  "serviceId": 10,
+  "slotId": 193,
   "paymentMethod": "stripe",
   "paymentCard": {
     "cardNumber": "4242424242424242",
@@ -899,8 +892,8 @@ POST {{baseUrl}}/api/customer/bookings
 Content-Type: application/json
 
 {
-  "serviceId": 2,
-  "slotId": 10,
+  "serviceId": 10,
+  "slotId": 190,
   "paymentMethod": "paypal",
   "paymentCard": {
     "cardNumber": "5555555555554444",
@@ -941,7 +934,7 @@ Content-Type: application/json
 }
 
 ### Cancel booking (triggers auto-refund if <24hrs, or manual refund request)
-PUT {{baseUrl}}/api/customer/bookings/{bookingId}/cancel
+PUT {{baseUrl}}/api/customer/bookings/7/cancel
 # Cookie sent automatically
 Content-Type: application/json
 
@@ -968,7 +961,7 @@ Content-Type: application/json
 GET {{baseUrl}}/api/admin/refunds/pending
 
 ### Approve refund (replace {id} with actual refund ID)
-PUT {{baseUrl}}/api/admin/refunds/{id}/approve
+PUT {{baseUrl}}/api/admin/refunds/3/approve
 # Cookie sent automatically
 Content-Type: application/json
 
@@ -996,7 +989,7 @@ Content-Type: application/json
 GET {{baseUrl}}/api/provider/bookings
 
 ### Complete a booking (triggers PAYOUT transaction)
-PUT {{baseUrl}}/api/provider/bookings/{bookingId}/complete
+PUT {{baseUrl}}/api/provider/bookings/5/complete
 # Cookie sent automatically
 
 ### Check transactions as admin - should see STRIPE_PAYOUT_ or PAYPAL_PAYOUT_
@@ -1064,9 +1057,6 @@ Content-Type: application/json
     "billingAddress": "Test Address"
   }
 }
-### Expected: Success with STRIPE_ prefix (card is alias for stripe)
-
 ### ============================================================================
 ### END OF API TESTING FILE
 ### ============================================================================
-

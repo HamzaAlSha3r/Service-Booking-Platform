@@ -21,7 +21,6 @@ import java.util.List;
 public class ServiceController {
 
     private final PublicServiceService publicServiceService;
-
     /**
      * Get all active services
      * Supports filtering by category, search term, price range, and sorting

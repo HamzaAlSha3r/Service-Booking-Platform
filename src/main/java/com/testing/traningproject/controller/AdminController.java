@@ -5,12 +5,7 @@ import com.testing.traningproject.model.dto.request.CreateSubscriptionPlanReques
 import com.testing.traningproject.model.dto.request.ProviderApprovalRequest;
 import com.testing.traningproject.model.dto.request.RefundDecisionRequest;
 import com.testing.traningproject.model.dto.request.UpdateSubscriptionPlanRequest;
-import com.testing.traningproject.model.dto.response.AdminStatsResponse;
-import com.testing.traningproject.model.dto.response.CategoryResponse;
-import com.testing.traningproject.model.dto.response.PendingProviderResponse;
-import com.testing.traningproject.model.dto.response.PendingRefundResponse;
-import com.testing.traningproject.model.dto.response.SubscriptionPlanResponse;
-import com.testing.traningproject.model.dto.response.TransactionResponse;
+import com.testing.traningproject.model.dto.response.*;
 import com.testing.traningproject.service.AdminService;
 import com.testing.traningproject.service.CategoryService;
 import com.testing.traningproject.service.TransactionService;
@@ -21,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -45,6 +41,13 @@ public class AdminController {
     public ResponseEntity<List<PendingProviderResponse>> getPendingProviders() {
         List<PendingProviderResponse> providers = adminService.getPendingProviders();
         return ResponseEntity.ok(providers);
+    }
+
+    //  Get all services with their bookings
+    @GetMapping("/services/all-bookings")
+    public ResponseEntity<List<ServiceWithBookingsResponse>> getAllServicesWithBookings() {
+        List<ServiceWithBookingsResponse> services = adminService.getAllServicesWithBookings();
+        return ResponseEntity.ok(services);
     }
 
     /**

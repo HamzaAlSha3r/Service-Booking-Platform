@@ -21,6 +21,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT b FROM Booking b WHERE b.customer.id = :customerId ORDER BY b.createdAt DESC")
     List<Booking> findByCustomerId(@Param("customerId") Long customerId);
 
+    // Find all bookings grouped by service
+    @Query("SELECT b FROM Booking b INNER JOIN FETCH b.service INNER JOIN FETCH b.customer ORDER BY b.service.id")
+    List<Booking> findAllBookingForService();
+
     // Find all bookings for a provider
     @Query("SELECT b FROM Booking b WHERE b.service.provider.id = :providerId ORDER BY b.createdAt DESC")
     List<Booking> findByProviderId(@Param("providerId") Long providerId);
