@@ -37,7 +37,7 @@ This platform allows customers to discover and book services from professional p
 - **Language:** Java 17
 - **Database:** PostgreSQL
 - **Security:** Spring Security + JWT
-- **Payment Gateway:** Stripe API
+- **Payment Gateway:** Stripe & PayPal as simulation 
 - **Build Tool:** Maven
 
 ## 📊 Database
